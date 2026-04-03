@@ -1,21 +1,26 @@
+import { tool } from "ai";
+import { z } from "zod";
 import { LinearClient } from "@linear/sdk";
+import { defineSource } from "./registry.js";
+import { formatSourceResult, type SourceResult } from "./types.js";
 import { getConfig } from "../config/defaults.js";
-import type { SourceResult } from "./types.js";
+
+const dateRange = {
+  since: z.string().describe("Start date in YYYY-MM-DD format"),
+  until: z.string().describe("End date in YYYY-MM-DD format"),
+};
 
 function getClient(): LinearClient {
-  if (!process.env.LINEAR_API_KEY) {
-    throw new Error("LINEAR_API_KEY not set");
-  }
   return new LinearClient({ apiKey: process.env.LINEAR_API_KEY });
 }
 
-export async function getCompletedIssues(params: {
+// ── API functions ───────────────────────────────────────────────────
+
+async function getCompletedIssues(params: {
   since: string;
   until: string;
 }): Promise<SourceResult> {
   const client = getClient();
-  const config = getConfig();
-
   const me = await client.viewer;
 
   const issues = await client.issues({
@@ -59,7 +64,7 @@ export async function getCompletedIssues(params: {
   };
 }
 
-export async function getProjects(params: {
+async function getProjects(params: {
   since: string;
   until: string;
 }): Promise<SourceResult> {
@@ -102,3 +107,30 @@ export async function getProjects(params: {
     totalCount: allProjects.length,
   };
 }
+
+// ── Source definition ───────────────────────────────────────────────
+
+export default defineSource({
+  name: "Linear",
+  envKey: "LINEAR_API_KEY",
+  description: "Issues completed, project contributions, and cycle metrics",
+  getUserContext: () => {
+    const config = getConfig();
+    if (!config.linear.teamId) return "";
+    return `Linear team: ${config.linear.teamId}.`;
+  },
+  tools: {
+    linear_get_completed_issues: tool({
+      description:
+        "Get issues completed by the user in a date range. Returns issue titles, projects, labels, and point estimates.",
+      parameters: z.object(dateRange),
+      execute: async (params) => formatSourceResult(await getCompletedIssues(params)),
+    }),
+    linear_get_projects: tool({
+      description:
+        "Get projects the user contributed to. Shows project name, status, and progress.",
+      parameters: z.object(dateRange),
+      execute: async (params) => formatSourceResult(await getProjects(params)),
+    }),
+  },
+});

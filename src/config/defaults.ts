@@ -44,11 +44,4 @@ export function setConfig<K extends keyof HighliConfig>(
   store.set(key, value);
 }
 
-export function getAvailableSources(): string[] {
-  const sources: string[] = [];
-  if (process.env.GITHUB_TOKEN) sources.push("github");
-  if (process.env.SLACK_TOKEN) sources.push("slack");
-  if (process.env.LINEAR_API_KEY) sources.push("linear");
-  if (process.env.NOTION_TOKEN) sources.push("notion");
-  return sources;
-}
+// Source availability is now handled by src/sources/registry.ts

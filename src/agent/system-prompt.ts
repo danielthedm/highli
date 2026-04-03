@@ -1,32 +1,28 @@
-import { getConfig, getAvailableSources } from "../config/defaults.js";
+import {
+  getActiveSources,
+  getActiveSourceNames,
+  getSourceContext,
+} from "../sources/registry.js";
 
 export function buildSystemPrompt(timeframe?: {
   from: string;
   to: string;
 }): string {
-  const config = getConfig();
-  const sources = getAvailableSources();
+  const sourceNames = getActiveSourceNames();
+  const sourceContext = getSourceContext();
 
   const timeframeStr = timeframe
     ? `The review period is from ${timeframe.from} to ${timeframe.to}. Focus all data gathering and examples within this timeframe.`
     : "No specific timeframe has been set yet. Ask the user for their review period.";
 
   const sourcesStr =
-    sources.length > 0
-      ? `You have access to these data sources: ${sources.join(", ")}. Use them proactively to gather evidence.`
+    sourceNames.length > 0
+      ? `You have access to these data sources: ${sourceNames.join(", ")}. Use them proactively to gather evidence.`
       : "No data sources are connected yet. You'll rely on what the user tells you directly.";
 
-  const githubStr = config.github.username
-    ? `GitHub username: ${config.github.username}. Repos: ${config.github.repos.join(", ") || "all accessible"}.`
-    : "";
-
-  const slackStr = config.slack.userId
-    ? `Slack user ID: ${config.slack.userId}.`
-    : "";
-
-  const linearStr = config.linear.teamId
-    ? `Linear team: ${config.linear.teamId}.`
-    : "";
+  const sourceDescriptions = getActiveSources()
+    .map((s) => `- **${s.name}**: ${s.description}`)
+    .join("\n");
 
   return `You are highli, a performance review assistant. Your job is to help the user write an excellent self-performance review by gathering real evidence of their work and crafting compelling answers.
 
@@ -47,10 +43,11 @@ export function buildSystemPrompt(timeframe?: {
 ## Review Period
 ${timeframeStr}
 
+## Connected Sources
+${sourceDescriptions || "None connected."}
+
 ## User Context
-${githubStr}
-${slackStr}
-${linearStr}
+${sourceContext || "No source-specific context configured."}
 
 ## Important
 - Work through ALL review questions — don't skip any

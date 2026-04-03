@@ -82,15 +82,16 @@ export function useConversation(timeframe?: { from: string; to: string }) {
                 },
               ]);
               break;
-            case "tool-result":
+            case "step-finish":
+              // Mark all running tools as done when a step finishes
               setActiveTools((prev) =>
                 prev.map((t) =>
-                  t.id === part.toolCallId
+                  t.status === "running"
                     ? { ...t, status: "done" as const }
                     : t,
                 ),
               );
-              // Reset streaming text for next text generation step
+              // Reset streaming text for next step
               fullText = "";
               setStreamingText("");
               break;

@@ -3,17 +3,15 @@ import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import type { ActiveTool } from "../agent/types.js";
 
-const TOOL_LABELS: Record<string, string> = {
-  github_get_prs: "Fetching GitHub PRs",
-  github_get_reviews: "Fetching GitHub reviews",
-  github_get_commits: "Fetching GitHub commits",
-  linear_get_completed_issues: "Fetching Linear issues",
-  linear_get_projects: "Fetching Linear projects",
-  slack_search_messages: "Searching Slack messages",
-  slack_get_channel_activity: "Fetching Slack activity",
-  notion_search_pages: "Searching Notion",
-  notion_get_page_content: "Reading Notion page",
-};
+function formatToolName(name: string): string {
+  // "github_get_prs" → "Fetching GitHub PRs"
+  // "slack_search_messages" → "Searching Slack messages"
+  return name
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/^(\w+) Get /, "Fetching $1 ")
+    .replace(/^(\w+) Search /, "Searching $1 ");
+}
 
 interface ToolStatusProps {
   tools: ActiveTool[];
@@ -25,7 +23,7 @@ export function ToolStatus({ tools }: ToolStatusProps) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       {tools.map((tool) => {
-        const label = TOOL_LABELS[tool.name] ?? tool.name;
+        const label = formatToolName(tool.name);
         const elapsed = Math.round((Date.now() - tool.startedAt) / 1000);
 
         return (

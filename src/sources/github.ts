@@ -1,40 +1,37 @@
+import { tool } from "ai";
+import { z } from "zod";
 import { Octokit } from "@octokit/rest";
 import { getConfig } from "../config/defaults.js";
-import type { SourceResult } from "./types.js";
+import { defineSource } from "./registry.js";
+import { formatSourceResult, type SourceResult } from "./types.js";
+
+const dateRange = {
+  since: z.string().describe("Start date in YYYY-MM-DD format"),
+  until: z.string().describe("End date in YYYY-MM-DD format"),
+};
 
 function getClient(): Octokit {
-  if (!process.env.GITHUB_TOKEN) {
-    throw new Error("GITHUB_TOKEN not set");
-  }
   return new Octokit({ auth: process.env.GITHUB_TOKEN });
 }
 
-export async function getPullRequests(params: {
-  since: string;
-  until: string;
-  repos?: string[];
-  state?: "open" | "closed" | "all";
-}): Promise<SourceResult> {
-  const octokit = getClient();
+async function getUsername(octokit: Octokit): Promise<string> {
   const config = getConfig();
-  const username = config.github.username;
-
-  if (!username) {
-    // Try to detect from token
-    const { data: user } = await octokit.users.getAuthenticated();
-    return await fetchPRsForUser(octokit, user.login, params);
-  }
-
-  return await fetchPRsForUser(octokit, username, params);
+  if (config.github.username) return config.github.username;
+  const { data: user } = await octokit.users.getAuthenticated();
+  return user.login;
 }
 
-async function fetchPRsForUser(
-  octokit: Octokit,
-  username: string,
-  params: { since: string; until: string; repos?: string[]; state?: string },
-): Promise<SourceResult> {
-  const query = `author:${username} created:${params.since}..${params.until} is:pr ${params.state === "all" ? "" : "is:merged"}`;
+// ── API functions ───────────────────────────────────────────────────
 
+async function getPullRequests(params: {
+  since: string;
+  until: string;
+  state?: string;
+}): Promise<SourceResult> {
+  const octokit = getClient();
+  const username = await getUsername(octokit);
+
+  const query = `author:${username} created:${params.since}..${params.until} is:pr ${params.state === "all" ? "" : "is:merged"}`;
   const { data } = await octokit.search.issuesAndPullRequests({
     q: query,
     sort: "created",
@@ -47,9 +44,7 @@ async function fetchPRsForUser(
     description: `#${pr.number} in ${pr.repository_url.split("/").slice(-2).join("/")} — ${pr.state}`,
     date: pr.created_at.split("T")[0],
     url: pr.html_url,
-    metrics: {
-      comments: pr.comments,
-    },
+    metrics: { comments: pr.comments },
   }));
 
   const repos = new Set(
@@ -64,21 +59,14 @@ async function fetchPRsForUser(
   };
 }
 
-export async function getReviewsGiven(params: {
+async function getReviewsGiven(params: {
   since: string;
   until: string;
 }): Promise<SourceResult> {
   const octokit = getClient();
-  const config = getConfig();
-  let username = config.github.username;
-
-  if (!username) {
-    const { data: user } = await octokit.users.getAuthenticated();
-    username = user.login;
-  }
+  const username = await getUsername(octokit);
 
   const query = `reviewed-by:${username} created:${params.since}..${params.until} is:pr`;
-
   const { data } = await octokit.search.issuesAndPullRequests({
     q: query,
     sort: "created",
@@ -101,21 +89,14 @@ export async function getReviewsGiven(params: {
   };
 }
 
-export async function getCommitActivity(params: {
+async function getCommitActivity(params: {
   since: string;
   until: string;
 }): Promise<SourceResult> {
   const octokit = getClient();
-  const config = getConfig();
-  let username = config.github.username;
-
-  if (!username) {
-    const { data: user } = await octokit.users.getAuthenticated();
-    username = user.login;
-  }
+  const username = await getUsername(octokit);
 
   const query = `author:${username} committer-date:${params.since}..${params.until}`;
-
   const { data } = await octokit.search.commits({
     q: query,
     sort: "committer-date",
@@ -139,3 +120,42 @@ export async function getCommitActivity(params: {
     totalCount: data.total_count,
   };
 }
+
+// ── Source definition ───────────────────────────────────────────────
+
+export default defineSource({
+  name: "GitHub",
+  envKey: "GITHUB_TOKEN",
+  description: "Pull requests, code reviews, and commit activity",
+  getUserContext: () => {
+    const config = getConfig();
+    if (!config.github.username) return "";
+    return `GitHub username: ${config.github.username}. Repos: ${config.github.repos.join(", ") || "all accessible"}.`;
+  },
+  tools: {
+    github_get_prs: tool({
+      description:
+        "Get pull requests authored by the user in a date range. Returns PR titles, repos, status, and metrics.",
+      parameters: z.object({
+        ...dateRange,
+        state: z
+          .enum(["open", "closed", "all"])
+          .default("all")
+          .describe("Filter by PR state"),
+      }),
+      execute: async (params) => formatSourceResult(await getPullRequests(params)),
+    }),
+    github_get_reviews: tool({
+      description:
+        "Get code reviews given by the user. Shows PRs they reviewed and when.",
+      parameters: z.object(dateRange),
+      execute: async (params) => formatSourceResult(await getReviewsGiven(params)),
+    }),
+    github_get_commits: tool({
+      description:
+        "Get commit activity summary — commit count, repos, and top commits.",
+      parameters: z.object(dateRange),
+      execute: async (params) => formatSourceResult(await getCommitActivity(params)),
+    }),
+  },
+});

@@ -1,15 +1,22 @@
+import { tool } from "ai";
+import { z } from "zod";
 import { WebClient } from "@slack/web-api";
+import { defineSource } from "./registry.js";
+import { formatSourceResult, type SourceResult } from "./types.js";
 import { getConfig } from "../config/defaults.js";
-import type { SourceResult } from "./types.js";
+
+const dateRange = {
+  since: z.string().describe("Start date in YYYY-MM-DD format"),
+  until: z.string().describe("End date in YYYY-MM-DD format"),
+};
 
 function getClient(): WebClient {
-  if (!process.env.SLACK_TOKEN) {
-    throw new Error("SLACK_TOKEN not set");
-  }
   return new WebClient(process.env.SLACK_TOKEN);
 }
 
-export async function searchMessages(params: {
+// ── API functions ───────────────────────────────────────────────────
+
+async function searchMessages(params: {
   query: string;
   since: string;
   until: string;
@@ -18,12 +25,8 @@ export async function searchMessages(params: {
   const client = getClient();
   const config = getConfig();
 
-  const afterDate = params.since.replace(/-/g, "-");
-  const beforeDate = params.until.replace(/-/g, "-");
-  let query = `from:${config.slack.userId ?? "me"} after:${afterDate} before:${beforeDate}`;
-  if (params.query) {
-    query += ` ${params.query}`;
-  }
+  let query = `from:${config.slack.userId ?? "me"} after:${params.since} before:${params.until}`;
+  if (params.query) query += ` ${params.query}`;
   if (params.channels?.length) {
     query += ` in:${params.channels.join(" in:")}`;
   }
@@ -58,7 +61,7 @@ export async function searchMessages(params: {
   };
 }
 
-export async function getChannelActivity(params: {
+async function getChannelActivity(params: {
   channels: string[];
   since: string;
   until: string;
@@ -71,7 +74,6 @@ export async function getChannelActivity(params: {
   let total = 0;
 
   for (const channel of params.channels) {
-    // Find channel ID
     const listResult = await client.conversations.list({
       types: "public_channel,private_channel",
       limit: 200,
@@ -107,3 +109,45 @@ export async function getChannelActivity(params: {
     totalCount: total,
   };
 }
+
+// ── Source definition ───────────────────────────────────────────────
+
+export default defineSource({
+  name: "Slack",
+  envKey: "SLACK_TOKEN",
+  description: "Message search and channel activity",
+  getUserContext: () => {
+    const config = getConfig();
+    if (!config.slack.userId) return "";
+    return `Slack user ID: ${config.slack.userId}.`;
+  },
+  tools: {
+    slack_search_messages: tool({
+      description:
+        "Search the user's Slack messages. Returns messages matching a query within a date range. Use broad queries to find themes in communication.",
+      parameters: z.object({
+        ...dateRange,
+        query: z
+          .string()
+          .default("")
+          .describe("Search query (keywords, topics). Leave empty for all messages."),
+        channels: z
+          .array(z.string())
+          .optional()
+          .describe("Filter to specific channel names"),
+      }),
+      execute: async (params) => formatSourceResult(await searchMessages(params)),
+    }),
+    slack_get_channel_activity: tool({
+      description:
+        "Get the user's message counts in specific Slack channels over a date range.",
+      parameters: z.object({
+        ...dateRange,
+        channels: z
+          .array(z.string())
+          .describe("Channel names to check activity in"),
+      }),
+      execute: async (params) => formatSourceResult(await getChannelActivity(params)),
+    }),
+  },
+});

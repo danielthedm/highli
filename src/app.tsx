@@ -6,7 +6,7 @@ import { ChatInput } from "./components/ChatInput.js";
 import { ToolStatus } from "./components/ToolStatus.js";
 import { useConversation } from "./hooks/useConversation.js";
 import { useExport } from "./hooks/useExport.js";
-import { getAvailableSources } from "./config/defaults.js";
+import { getActiveSourceNames } from "./sources/registry.js";
 
 interface AppProps {
   timeframe?: { from: string; to: string };
@@ -15,7 +15,7 @@ interface AppProps {
 
 export function App({ timeframe, screenshotPath }: AppProps) {
   const { exit } = useApp();
-  const sources = getAvailableSources();
+  const sources = getActiveSourceNames();
   const { messages, streamingText, isStreaming, activeTools, sendMessage } =
     useConversation(timeframe);
   const { exportReview, copyToClipboard, exportPath } = useExport();

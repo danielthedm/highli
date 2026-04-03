@@ -1,14 +1,21 @@
+import { tool } from "ai";
+import { z } from "zod";
 import { Client } from "@notionhq/client";
-import type { SourceResult } from "./types.js";
+import { defineSource } from "./registry.js";
+import { formatSourceResult, type SourceResult } from "./types.js";
+
+const dateRange = {
+  since: z.string().describe("Start date in YYYY-MM-DD format"),
+  until: z.string().describe("End date in YYYY-MM-DD format"),
+};
 
 function getClient(): Client {
-  if (!process.env.NOTION_TOKEN) {
-    throw new Error("NOTION_TOKEN not set");
-  }
   return new Client({ auth: process.env.NOTION_TOKEN });
 }
 
-export async function searchPages(params: {
+// ── API functions ───────────────────────────────────────────────────
+
+async function searchPages(params: {
   query: string;
   since?: string;
   until?: string;
@@ -22,7 +29,9 @@ export async function searchPages(params: {
   });
 
   const items = response.results
-    .filter((r): r is Extract<typeof r, { object: "page" }> => r.object === "page")
+    .filter(
+      (r): r is Extract<typeof r, { object: "page" }> => r.object === "page",
+    )
     .filter((page) => {
       if (!params.since || !params.until) return true;
       const edited = "last_edited_time" in page ? page.last_edited_time : "";
@@ -48,7 +57,7 @@ export async function searchPages(params: {
   };
 }
 
-export async function getPageContent(params: {
+async function getPageContent(params: {
   pageId: string;
 }): Promise<SourceResult> {
   const client = getClient();
@@ -59,7 +68,6 @@ export async function getPageContent(params: {
   });
 
   const textParts: string[] = [];
-
   for (const block of blocks.results) {
     const text = extractBlockText(block);
     if (text) textParts.push(text);
@@ -69,7 +77,8 @@ export async function getPageContent(params: {
 
   return {
     source: "Notion Page Content",
-    summary: content.length > 2000 ? content.substring(0, 2000) + "..." : content,
+    summary:
+      content.length > 2000 ? content.substring(0, 2000) + "..." : content,
     items: [],
     totalCount: 1,
   };
@@ -91,3 +100,31 @@ function extractBlockText(block: any): string {
   if (!content?.rich_text) return "";
   return content.rich_text.map((t: any) => t.plain_text).join("");
 }
+
+// ── Source definition ───────────────────────────────────────────────
+
+export default defineSource({
+  name: "Notion",
+  envKey: "NOTION_TOKEN",
+  description: "Page search and document content retrieval",
+  tools: {
+    notion_search_pages: tool({
+      description:
+        "Search Notion for pages matching a query. Returns page titles, last edited dates, and URLs.",
+      parameters: z.object({
+        query: z.string().describe("Search query for Notion pages"),
+        ...dateRange,
+      }),
+      execute: async (params) => formatSourceResult(await searchPages(params)),
+    }),
+    notion_get_page_content: tool({
+      description:
+        "Get the text content of a specific Notion page by ID. Use this to read documents like company values, team goals, or project docs.",
+      parameters: z.object({
+        pageId: z.string().describe("The Notion page ID"),
+      }),
+      execute: async (params) =>
+        formatSourceResult(await getPageContent(params)),
+    }),
+  },
+});
