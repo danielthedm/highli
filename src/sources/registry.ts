@@ -3,7 +3,7 @@ import type { CoreTool } from "ai";
 export interface Source {
   /** Display name (e.g., "GitHub") */
   name: string;
-  /** Env var that must be set to enable this source (e.g., "GITHUB_TOKEN") */
+  /** Env var that enables this source (e.g., "GITHUB_TOKEN"). Checked first. */
   envKey: string;
   /** One-line description for the system prompt */
   description: string;
@@ -11,6 +11,8 @@ export interface Source {
   tools: Record<string, CoreTool>;
   /** Optional: return context string for system prompt (e.g., "GitHub username: ...") */
   getUserContext?: () => string;
+  /** Optional: custom availability check (runs if envKey is not set). Return true if available. */
+  isAvailable?: () => boolean;
 }
 
 /** Define a source. Just returns the object — exists for readability and type safety. */
@@ -29,9 +31,11 @@ import notion from "./notion.js";
 
 const allSources: Source[] = [github, linear, slack, notion];
 
-/** Get sources that have their env var set */
+/** Get sources that are available (env var set, or custom check passes) */
 export function getActiveSources(): Source[] {
-  return allSources.filter((s) => process.env[s.envKey]);
+  return allSources.filter(
+    (s) => process.env[s.envKey] || s.isAvailable?.(),
+  );
 }
 
 /** Get names of active sources */

@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { execSync } from "child_process";
 import { Octokit } from "@octokit/rest";
 import { getConfig } from "../config/defaults.js";
 import { defineSource } from "./registry.js";
@@ -10,8 +11,17 @@ const dateRange = {
   until: z.string().describe("End date in YYYY-MM-DD format"),
 };
 
+function getGitHubToken(): string | undefined {
+  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
+  try {
+    return execSync("gh auth token", { encoding: "utf-8" }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
 function getClient(): Octokit {
-  return new Octokit({ auth: process.env.GITHUB_TOKEN });
+  return new Octokit({ auth: getGitHubToken() });
 }
 
 async function getUsername(octokit: Octokit): Promise<string> {
@@ -127,6 +137,7 @@ export default defineSource({
   name: "GitHub",
   envKey: "GITHUB_TOKEN",
   description: "Pull requests, code reviews, and commit activity",
+  isAvailable: () => !!getGitHubToken(),
   getUserContext: () => {
     const config = getConfig();
     if (!config.github.username) return "";
