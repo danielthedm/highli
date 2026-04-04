@@ -1,7 +1,7 @@
 import { streamText } from "ai";
 import { getModel } from "../agent/provider.js";
 import { getEnabledTools } from "../agent/tools.js";
-import { buildReportPrompt, buildBragPrompt } from "./prompt.js";
+import { buildReportPrompt, buildBragPrompt, buildBragAmendPrompt } from "./prompt.js";
 
 export interface GenerateCallbacks {
   onToolStart: (name: string) => void;
@@ -11,26 +11,38 @@ export interface GenerateCallbacks {
   onError: (error: Error) => void;
 }
 
-export type GenerateMode = "report" | "brag";
+export type GenerateMode = "report" | "brag" | "brag-amend";
+
+export interface GenerateOptions {
+  existingBrag?: string;
+}
 
 const USER_MESSAGES: Record<GenerateMode, (from: string, to: string) => string> = {
   report: (from, to) =>
     `Generate a comprehensive insights report for my work from ${from} to ${to}. Pull data from all available sources and analyze everything. Start by gathering data from all sources in parallel, then write the full report.`,
   brag: (from, to) =>
     `Generate a brag document for my work from ${from} to ${to}. Pull data from every available source — GitHub, Linear, Slack, Notion, Claude Code logs, everything connected. Gather all data first in parallel, then synthesize into the brag doc.`,
-};
-
-const PROMPT_BUILDERS: Record<GenerateMode, (timeframe: { from: string; to: string }) => string> = {
-  report: buildReportPrompt,
-  brag: buildBragPrompt,
+  "brag-amend": (from, to) =>
+    `Update my existing brag document with new accomplishments from ${from} to ${to}. Pull data from all available sources for this new period, then merge the new items into the existing doc. Output the complete updated document.`,
 };
 
 export async function generate(
   mode: GenerateMode,
   timeframe: { from: string; to: string },
   callbacks: GenerateCallbacks,
+  options?: GenerateOptions,
 ): Promise<void> {
-  const system = PROMPT_BUILDERS[mode](timeframe);
+  let system: string;
+  if (mode === "brag-amend" && options?.existingBrag) {
+    system = buildBragAmendPrompt(timeframe, options.existingBrag);
+  } else if (mode === "brag-amend") {
+    // Fallback to fresh brag if no existing doc
+    system = buildBragPrompt(timeframe);
+  } else if (mode === "brag") {
+    system = buildBragPrompt(timeframe);
+  } else {
+    system = buildReportPrompt(timeframe);
+  }
   const tools = getEnabledTools();
   const userMessage = USER_MESSAGES[mode](timeframe.from, timeframe.to);
 

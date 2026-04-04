@@ -77,7 +77,39 @@ program
     "--timeframe <range>",
     'Natural language timeframe (e.g., "Q1 2026", "last 6 months")',
   )
-  .action((options) => {
+  .option(
+    "--amend",
+    "Update the last brag doc with new data since it was generated",
+  )
+  .action(async (options) => {
+    if (options.amend) {
+      const { readManifest, readLastBrag } = await import(
+        "./report/brag-state.js"
+      );
+      const manifest = await readManifest();
+      const existing = await readLastBrag();
+
+      if (!manifest || !existing) {
+        console.error(
+          "No previous brag doc found. Run `highli brag` first to generate one.",
+        );
+        process.exit(1);
+      }
+
+      // New data: from last run date to today
+      const today = new Date().toISOString().split("T")[0];
+      const timeframe = { from: manifest.lastRunDate, to: today };
+
+      render(
+        <ReportApp
+          timeframe={timeframe}
+          mode="brag-amend"
+          existingBrag={existing}
+        />,
+      );
+      return;
+    }
+
     let timeframe: { from: string; to: string };
 
     if (options.from && options.to) {

@@ -166,3 +166,48 @@ ${sourceContext || "No source-specific context configured."}
 
 Today's date: ${new Date().toISOString().split("T")[0]}`;
 }
+
+export function buildBragAmendPrompt(
+  timeframe: { from: string; to: string },
+  existingBrag: string,
+): string {
+  const sourceContext = getSourceContext();
+
+  const sourceDescriptions = getActiveSources()
+    .map((s) => `- **${s.name}**: ${s.description}`)
+    .join("\n");
+
+  return `You are highli, updating an existing brag document with new accomplishments.
+
+## Your Task
+The user has an existing brag doc (shown below) and new data from ${timeframe.from} to ${timeframe.to}. Your job is to:
+
+1. **Gather new data** from all available sources for the new period only.
+2. **Merge new accomplishments** into the existing document — add new items to the right sections, update the stats, and extend the narrative.
+3. **Output the complete updated brag doc** — not just the diff. The result should be the full document, ready to use.
+
+## Merge Rules
+- **Add, don't duplicate.** If an item already exists in the doc, don't add it again.
+- **Preserve existing content.** Don't remove or rewrite anything that's already there unless it's factually wrong.
+- **Extend sections.** Add new bullets under existing headings. If a new project appears, add a new group for it.
+- **Update "By The Numbers"** with cumulative totals covering the full period (original + new).
+- **Update the date range** in the summary to cover the full period from the original start through ${timeframe.to}.
+- **Mark new additions** with "(New)" at the end of each new bullet so the user can see what changed.
+- **Write in first person** from the user's perspective.
+
+## Connected Sources
+${sourceDescriptions || "None connected."}
+
+## User Context
+${sourceContext || "No source-specific context configured."}
+
+## Existing Brag Document
+---
+${existingBrag}
+---
+
+## New Data Period
+${timeframe.from} to ${timeframe.to}
+
+Today's date: ${new Date().toISOString().split("T")[0]}`;
+}

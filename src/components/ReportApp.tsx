@@ -4,6 +4,7 @@ import Spinner from "ink-spinner";
 import { Header } from "./Header.js";
 import { getActiveSourceNames } from "../sources/registry.js";
 import { generate, type GenerateMode } from "../report/generate.js";
+import { writeManifest } from "../report/brag-state.js";
 import { writeFile, mkdir } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
@@ -12,11 +13,13 @@ import { format } from "date-fns";
 interface ReportAppProps {
   timeframe: { from: string; to: string };
   mode?: GenerateMode;
+  existingBrag?: string;
 }
 
 const MODE_CONFIG: Record<GenerateMode, { title: string; dir: string; prefix: string }> = {
   report: { title: "insights report", dir: "reports", prefix: "report" },
   brag: { title: "brag document", dir: "brags", prefix: "brag" },
+  "brag-amend": { title: "brag document (amend)", dir: "brags", prefix: "brag" },
 };
 
 interface ToolEntry {
@@ -33,7 +36,7 @@ function formatToolName(name: string): string {
     .replace(/^(\w+) Search /, "Searching $1 ");
 }
 
-export function ReportApp({ timeframe, mode = "report" }: ReportAppProps) {
+export function ReportApp({ timeframe, mode = "report", existingBrag }: ReportAppProps) {
   const { exit } = useApp();
   const sources = getActiveSourceNames();
   const config = MODE_CONFIG[mode];
@@ -79,6 +82,14 @@ export function ReportApp({ timeframe, mode = "report" }: ReportAppProps) {
         await writeFile(filePath, fullText, "utf-8");
         setSavedPath(filePath);
 
+        // Save brag manifest for amend support
+        if (mode === "brag" || mode === "brag-amend") {
+          await writeManifest({
+            lastRunDate: timeframe.to,
+            lastFilePath: filePath,
+          });
+        }
+
         // Copy to clipboard
         try {
           const { default: clipboardy } = await import("clipboardy");
@@ -93,7 +104,7 @@ export function ReportApp({ timeframe, mode = "report" }: ReportAppProps) {
         setPhase("error");
         setTimeout(() => exit(), 2000);
       },
-    });
+    }, { existingBrag });
   }, []);
 
   return (
