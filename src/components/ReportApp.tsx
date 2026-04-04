@@ -3,7 +3,7 @@ import { Box, Text, useApp } from "ink";
 import Spinner from "ink-spinner";
 import { Header } from "./Header.js";
 import { getActiveSourceNames } from "../sources/registry.js";
-import { generateReport } from "../report/generate.js";
+import { generate, type GenerateMode } from "../report/generate.js";
 import { writeFile, mkdir } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
@@ -11,7 +11,13 @@ import { format } from "date-fns";
 
 interface ReportAppProps {
   timeframe: { from: string; to: string };
+  mode?: GenerateMode;
 }
+
+const MODE_CONFIG: Record<GenerateMode, { title: string; dir: string; prefix: string }> = {
+  report: { title: "insights report", dir: "reports", prefix: "report" },
+  brag: { title: "brag document", dir: "brags", prefix: "brag" },
+};
 
 interface ToolEntry {
   name: string;
@@ -27,9 +33,10 @@ function formatToolName(name: string): string {
     .replace(/^(\w+) Search /, "Searching $1 ");
 }
 
-export function ReportApp({ timeframe }: ReportAppProps) {
+export function ReportApp({ timeframe, mode = "report" }: ReportAppProps) {
   const { exit } = useApp();
   const sources = getActiveSourceNames();
+  const config = MODE_CONFIG[mode];
   const [tools, setTools] = useState<ToolEntry[]>([]);
   const [reportText, setReportText] = useState("");
   const [phase, setPhase] = useState<"gathering" | "writing" | "done" | "error">("gathering");
@@ -37,7 +44,7 @@ export function ReportApp({ timeframe }: ReportAppProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    generateReport(timeframe, {
+    generate(mode, timeframe, {
       onToolStart: (name) => {
         setTools((prev) => {
           // Mark any previously running tool as done
@@ -64,10 +71,10 @@ export function ReportApp({ timeframe }: ReportAppProps) {
           prev.map((t) => ({ ...t, status: "done" as const })),
         );
 
-        // Save report
-        const dir = join(homedir(), ".highli", "reports");
+        // Save output
+        const dir = join(homedir(), ".highli", config.dir);
         await mkdir(dir, { recursive: true });
-        const filename = `report-${format(new Date(), "yyyy-MM-dd-HHmm")}.md`;
+        const filename = `${config.prefix}-${format(new Date(), "yyyy-MM-dd-HHmm")}.md`;
         const filePath = join(dir, filename);
         await writeFile(filePath, fullText, "utf-8");
         setSavedPath(filePath);
@@ -96,7 +103,7 @@ export function ReportApp({ timeframe }: ReportAppProps) {
           <Text bold color="magenta">
             highli
           </Text>
-          <Text color="gray"> — insights report</Text>
+          <Text color="gray"> — {config.title}</Text>
         </Box>
         <Box gap={2}>
           <Text color="cyan">

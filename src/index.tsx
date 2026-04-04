@@ -65,6 +65,32 @@ program
     render(<ReportApp timeframe={timeframe} />);
   });
 
+// Brag document
+program
+  .command("brag")
+  .description(
+    "Generate a brag document — accomplishments, impact, and evidence for reviews and promotions",
+  )
+  .option("--from <date>", "Period start date (YYYY-MM-DD)")
+  .option("--to <date>", "Period end date (YYYY-MM-DD)")
+  .option(
+    "--timeframe <range>",
+    'Natural language timeframe (e.g., "Q1 2026", "last 6 months")',
+  )
+  .action((options) => {
+    let timeframe: { from: string; to: string };
+
+    if (options.from && options.to) {
+      timeframe = { from: options.from, to: options.to };
+    } else if (options.timeframe) {
+      timeframe = parseDateRange(options.timeframe);
+    } else {
+      timeframe = parseDateRange("last 6 months");
+    }
+
+    render(<ReportApp timeframe={timeframe} mode="brag" />);
+  });
+
 // Setup wizard
 program
   .command("setup")
