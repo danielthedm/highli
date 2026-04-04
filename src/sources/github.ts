@@ -3,8 +3,9 @@ import { z } from "zod";
 import { execSync } from "child_process";
 import { Octokit } from "@octokit/rest";
 import { getConfig } from "../config/defaults.js";
-import { defineSource } from "./registry.js";
+import { defineSource, getSourceMethod } from "./registry.js";
 import { formatSourceResult, type SourceResult } from "./types.js";
+import { claudeMcpQuery } from "./claude-mcp.js";
 
 const dateRange = {
   since: z.string().describe("Start date in YYYY-MM-DD format"),
@@ -133,8 +134,9 @@ async function getCommitActivity(params: {
 
 // ── Source definition ───────────────────────────────────────────────
 
-export default defineSource({
+const source = defineSource({
   name: "GitHub",
+  configKey: "github",
   envKey: "GITHUB_TOKEN",
   description: "Pull requests, code reviews, and commit activity",
   isAvailable: () => !!getGitHubToken(),
@@ -154,19 +156,42 @@ export default defineSource({
           .default("all")
           .describe("Filter by PR state"),
       }),
-      execute: async (params) => formatSourceResult(await getPullRequests(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          return claudeMcpQuery(
+            `List my GitHub pull requests from ${params.since} to ${params.until} (state: ${params.state}). For each PR include: title, PR number, repository, state, date created, and URL. Format as a markdown list.`,
+          );
+        }
+        return formatSourceResult(await getPullRequests(params));
+      },
     }),
     github_get_reviews: tool({
       description:
         "Get code reviews given by the user. Shows PRs they reviewed and when.",
       parameters: z.object(dateRange),
-      execute: async (params) => formatSourceResult(await getReviewsGiven(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          return claudeMcpQuery(
+            `List the GitHub pull requests I reviewed from ${params.since} to ${params.until}. For each include: PR title, number, repository, and date. Format as a markdown list.`,
+          );
+        }
+        return formatSourceResult(await getReviewsGiven(params));
+      },
     }),
     github_get_commits: tool({
       description:
         "Get commit activity summary — commit count, repos, and top commits.",
       parameters: z.object(dateRange),
-      execute: async (params) => formatSourceResult(await getCommitActivity(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          return claudeMcpQuery(
+            `Summarize my GitHub commit activity from ${params.since} to ${params.until}. Include: total commit count, which repositories I committed to, and the most notable commit messages. Format as markdown.`,
+          );
+        }
+        return formatSourceResult(await getCommitActivity(params));
+      },
     }),
   },
 });
+
+export default source;

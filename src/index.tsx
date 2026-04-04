@@ -3,6 +3,8 @@ import React from "react";
 import { render } from "ink";
 import { Command } from "commander";
 import { App } from "./app.js";
+import { ReportApp } from "./components/ReportApp.js";
+import { SetupWizard } from "./setup/wizard.js";
 import { parseDateRange } from "./utils/date.js";
 
 const program = new Command();
@@ -10,7 +12,12 @@ const program = new Command();
 program
   .name("highli")
   .description("AI-powered self-performance review assistant")
-  .version("0.1.0")
+  .version("0.1.0");
+
+// Interactive review chat
+program
+  .command("review")
+  .description("Start an interactive performance review session")
   .option("--from <date>", "Review period start date (YYYY-MM-DD)")
   .option("--to <date>", "Review period end date (YYYY-MM-DD)")
   .option(
@@ -30,5 +37,47 @@ program
 
     render(<App timeframe={timeframe} screenshotPath={options.screenshot} />);
   });
+
+// Report command: generate insights report
+program
+  .command("report")
+  .description(
+    "Generate an insights report — work patterns, productivity trends, and Claude usage analysis",
+  )
+  .option("--from <date>", "Report period start date (YYYY-MM-DD)")
+  .option("--to <date>", "Report period end date (YYYY-MM-DD)")
+  .option(
+    "--timeframe <range>",
+    'Natural language timeframe (e.g., "Q1 2026", "last 6 months")',
+  )
+  .action((options) => {
+    let timeframe: { from: string; to: string };
+
+    if (options.from && options.to) {
+      timeframe = { from: options.from, to: options.to };
+    } else if (options.timeframe) {
+      timeframe = parseDateRange(options.timeframe);
+    } else {
+      // Default to last 6 months
+      timeframe = parseDateRange("last 6 months");
+    }
+
+    render(<ReportApp timeframe={timeframe} />);
+  });
+
+// Setup wizard
+program
+  .command("setup")
+  .description(
+    "Interactive setup wizard — configure data sources and access methods",
+  )
+  .action(() => {
+    render(<SetupWizard />);
+  });
+
+// Show help if no command given
+program.action(() => {
+  program.help();
+});
 
 program.parse();

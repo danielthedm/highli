@@ -1,8 +1,9 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { Client } from "@notionhq/client";
-import { defineSource } from "./registry.js";
+import { defineSource, getSourceMethod } from "./registry.js";
 import { formatSourceResult, type SourceResult } from "./types.js";
+import { claudeMcpQuery } from "./claude-mcp.js";
 
 const dateRange = {
   since: z.string().describe("Start date in YYYY-MM-DD format"),
@@ -103,8 +104,9 @@ function extractBlockText(block: any): string {
 
 // ── Source definition ───────────────────────────────────────────────
 
-export default defineSource({
+const source = defineSource({
   name: "Notion",
+  configKey: "notion",
   envKey: "NOTION_TOKEN",
   description: "Page search and document content retrieval",
   tools: {
@@ -115,7 +117,14 @@ export default defineSource({
         query: z.string().describe("Search query for Notion pages"),
         ...dateRange,
       }),
-      execute: async (params) => formatSourceResult(await searchPages(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          return claudeMcpQuery(
+            `Search Notion for pages matching "${params.query}" edited between ${params.since} and ${params.until}. List each page with its title, last edited date, and URL. Format as markdown.`,
+          );
+        }
+        return formatSourceResult(await searchPages(params));
+      },
     }),
     notion_get_page_content: tool({
       description:
@@ -123,8 +132,16 @@ export default defineSource({
       parameters: z.object({
         pageId: z.string().describe("The Notion page ID"),
       }),
-      execute: async (params) =>
-        formatSourceResult(await getPageContent(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          return claudeMcpQuery(
+            `Get the full text content of the Notion page with ID "${params.pageId}". Return the content as markdown.`,
+          );
+        }
+        return formatSourceResult(await getPageContent(params));
+      },
     }),
   },
 });
+
+export default source;

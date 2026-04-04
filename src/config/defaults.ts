@@ -10,16 +10,18 @@ const store = new Conf<HighliConfig>({
     slack: { type: "object" as const, default: {} },
     linear: { type: "object" as const, default: {} },
     notion: { type: "object" as const, default: {} },
+    claudeLogs: { type: "object" as const, default: {} },
   },
   defaults: {
     ai: {
       provider: (process.env.AI_PROVIDER as "anthropic" | "openai") ?? "anthropic",
       model: process.env.AI_MODEL ?? "claude-sonnet-4-20250514",
     },
-    github: { orgs: [], repos: [] },
-    slack: { defaultChannels: [] },
-    linear: {},
-    notion: { defaultDatabaseIds: [] },
+    github: { method: "auto", orgs: [], repos: [] },
+    slack: { method: "auto", defaultChannels: [] },
+    linear: { method: "auto" },
+    notion: { method: "auto", defaultDatabaseIds: [] },
+    claudeLogs: { method: "auto" },
   },
 });
 
@@ -34,6 +36,7 @@ export function getConfig(): HighliConfig {
     slack: raw.slack,
     linear: raw.linear,
     notion: raw.notion,
+    claudeLogs: raw.claudeLogs,
   });
 }
 

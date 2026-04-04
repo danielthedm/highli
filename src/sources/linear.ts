@@ -1,9 +1,10 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { LinearClient } from "@linear/sdk";
-import { defineSource } from "./registry.js";
+import { defineSource, getSourceMethod } from "./registry.js";
 import { formatSourceResult, type SourceResult } from "./types.js";
 import { getConfig } from "../config/defaults.js";
+import { claudeMcpQuery } from "./claude-mcp.js";
 
 const dateRange = {
   since: z.string().describe("Start date in YYYY-MM-DD format"),
@@ -110,8 +111,9 @@ async function getProjects(params: {
 
 // ── Source definition ───────────────────────────────────────────────
 
-export default defineSource({
+const source = defineSource({
   name: "Linear",
+  configKey: "linear",
   envKey: "LINEAR_API_KEY",
   description: "Issues completed, project contributions, and cycle metrics",
   getUserContext: () => {
@@ -124,13 +126,29 @@ export default defineSource({
       description:
         "Get issues completed by the user in a date range. Returns issue titles, projects, labels, and point estimates.",
       parameters: z.object(dateRange),
-      execute: async (params) => formatSourceResult(await getCompletedIssues(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          return claudeMcpQuery(
+            `List my completed Linear issues from ${params.since} to ${params.until}. For each include: issue identifier, title, project name, point estimate, and completion date. Format as a markdown list.`,
+          );
+        }
+        return formatSourceResult(await getCompletedIssues(params));
+      },
     }),
     linear_get_projects: tool({
       description:
         "Get projects the user contributed to. Shows project name, status, and progress.",
       parameters: z.object(dateRange),
-      execute: async (params) => formatSourceResult(await getProjects(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          return claudeMcpQuery(
+            `List the Linear projects I contributed to that were active from ${params.since} to ${params.until}. For each include: project name, status, progress percentage, and target date. Format as markdown.`,
+          );
+        }
+        return formatSourceResult(await getProjects(params));
+      },
     }),
   },
 });
+
+export default source;

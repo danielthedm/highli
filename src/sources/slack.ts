@@ -1,9 +1,10 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { WebClient } from "@slack/web-api";
-import { defineSource } from "./registry.js";
+import { defineSource, getSourceMethod } from "./registry.js";
 import { formatSourceResult, type SourceResult } from "./types.js";
 import { getConfig } from "../config/defaults.js";
+import { claudeMcpQuery } from "./claude-mcp.js";
 
 const dateRange = {
   since: z.string().describe("Start date in YYYY-MM-DD format"),
@@ -112,8 +113,9 @@ async function getChannelActivity(params: {
 
 // ── Source definition ───────────────────────────────────────────────
 
-export default defineSource({
+const source = defineSource({
   name: "Slack",
+  configKey: "slack",
   envKey: "SLACK_TOKEN",
   description: "Message search and channel activity",
   getUserContext: () => {
@@ -136,7 +138,17 @@ export default defineSource({
           .optional()
           .describe("Filter to specific channel names"),
       }),
-      execute: async (params) => formatSourceResult(await searchMessages(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          const channelFilter = params.channels?.length
+            ? ` in channels: ${params.channels.join(", ")}`
+            : "";
+          return claudeMcpQuery(
+            `Search my Slack messages from ${params.since} to ${params.until}${params.query ? ` matching "${params.query}"` : ""}${channelFilter}. Show message snippets, channel names, and dates. Format as a markdown list.`,
+          );
+        }
+        return formatSourceResult(await searchMessages(params));
+      },
     }),
     slack_get_channel_activity: tool({
       description:
@@ -147,7 +159,16 @@ export default defineSource({
           .array(z.string())
           .describe("Channel names to check activity in"),
       }),
-      execute: async (params) => formatSourceResult(await getChannelActivity(params)),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          return claudeMcpQuery(
+            `How many messages did I send in these Slack channels from ${params.since} to ${params.until}: ${params.channels.join(", ")}? Give me the count per channel. Format as markdown.`,
+          );
+        }
+        return formatSourceResult(await getChannelActivity(params));
+      },
     }),
   },
 });
+
+export default source;
