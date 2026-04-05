@@ -2,6 +2,16 @@
 
 AI-powered CLI tool that helps you write self-performance reviews by pulling real data from your work tools and iterating with you in a chat interface.
 
+## TL;DR
+
+```bash
+npm install && npm run build && npm link      # install
+cp .env.example .env                          # add your API keys
+highli setup                                  # connect your data sources
+highli brag --timeframe "last 6 months"       # generate a brag doc to see what you've done
+highli review --timeframe "last 6 months"     # start your self-review with that context
+```
+
 ## How it works
 
 1. Launch highli with a timeframe
@@ -48,6 +58,16 @@ All optional — highli works with whatever you connect:
 | Slack | `SLACK_TOKEN` | Messages, channel activity, thread participation |
 | Linear | `LINEAR_API_KEY` | Completed issues, project contributions |
 | Notion | `NOTION_TOKEN` | Pages created/edited, document content |
+| Jira | `JIRA_TOKEN` | Issues completed, sprint contributions, epics owned |
+| Confluence | `CONFLUENCE_TOKEN` | Pages authored, documentation contributions |
+| GitLab | `GITLAB_TOKEN` | MRs merged, code reviews, pipeline activity |
+| Bitbucket | `BITBUCKET_TOKEN` | PRs, commits, repository contributions |
+| Asana | `ASANA_TOKEN` | Tasks completed, projects contributed to |
+| Google Docs | `GOOGLE_TOKEN` | Docs created/edited, comments, collaboration |
+| PagerDuty | `PAGERDUTY_TOKEN` | On-call shifts, incidents responded to |
+| Datadog | `DATADOG_API_KEY` | Dashboards created, monitors configured |
+
+> **Note:** Only GitHub, Slack, Linear, and Notion are built in today. The table above shows the intended roadmap — contributions welcome. See [Adding a data source](#adding-a-data-source) to add one.
 
 **GitHub note:** If you don't set `GITHUB_TOKEN`, highli will automatically use your `gh` CLI session (if authenticated). This is useful when your org blocks personal access tokens.
 
