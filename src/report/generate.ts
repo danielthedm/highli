@@ -54,7 +54,7 @@ export async function generate(
       system,
       messages: [{ role: "user", content: userMessage }],
       tools,
-      maxSteps: 15,
+      maxSteps: 25,
     });
 
     for await (const part of result.fullStream) {

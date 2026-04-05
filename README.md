@@ -19,11 +19,11 @@ npm install
 # Copy .env and add your API keys
 cp .env.example .env
 
-# Run it
-npm run dev -- --timeframe "last 6 months"
+# Run the setup wizard to configure data sources
+npm run dev -- setup
 
-# Or with explicit dates
-npm run dev -- --from 2025-10-01 --to 2026-03-31
+# Start a review session
+npm run dev -- review --timeframe "last 6 months"
 ```
 
 ## Configuration
@@ -57,23 +57,74 @@ Settings like your GitHub username, default repos, and Slack user ID are stored 
 
 ## Usage
 
-### Chat commands
+### Commands
+
+#### `highli setup`
+Interactive wizard to configure data sources and access methods. Run this first.
+
+```bash
+highli setup
+```
+
+#### `highli review`
+Start an interactive performance review session. Paste your review questions or send a screenshot, and highli gathers data, drafts answers, and iterates with you.
+
+```bash
+highli review --timeframe "last 6 months"
+highli review --from 2025-10-01 --to 2026-03-31
+highli review --timeframe "Q1 2026" --screenshot ~/review-form.png
+```
+
+| Flag | Description |
+|------|-------------|
+| `--from <date>` | Review period start (YYYY-MM-DD) |
+| `--to <date>` | Review period end (YYYY-MM-DD) |
+| `--timeframe <range>` | Natural language: `"Q1 2026"`, `"last 6 months"`, `"H2 2025"` |
+| `--screenshot <path>` | Start with a screenshot of your review form |
+| `--verbose` | Debug logging |
+
+**Chat commands** (while in a review session):
 
 | Command | Description |
 |---------|-------------|
 | `/screenshot <path>` | Send a screenshot of your review form |
-| `/export` | Save the current review draft to `~/.highli/reviews/` and copy to clipboard |
+| `/export` | Save the draft to `~/.highli/reviews/` and copy to clipboard |
 | `/quit` | Exit |
 
-### CLI flags
+#### `highli report`
+Generate an insights report — work patterns, productivity trends, and Claude Code usage analysis.
 
+```bash
+highli report --timeframe "Q1 2026"
+highli report --from 2025-10-01 --to 2026-03-31
 ```
---from <date>        Review period start (YYYY-MM-DD)
---to <date>          Review period end (YYYY-MM-DD)
---timeframe <range>  Natural language: "Q1 2026", "last 6 months", "H2 2025"
---screenshot <path>  Start with a screenshot of your review form
---verbose            Debug logging
+
+| Flag | Description |
+|------|-------------|
+| `--from <date>` | Report period start (YYYY-MM-DD) |
+| `--to <date>` | Report period end (YYYY-MM-DD) |
+| `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
+
+#### `highli brag`
+Generate a brag document — a comprehensive record of accomplishments, impact, and evidence for performance reviews and promotion cases.
+
+```bash
+highli brag --timeframe "last 6 months"
+highli brag --from 2025-10-01 --to 2026-03-31
 ```
+
+Use `--amend` to incrementally update your last brag doc with new data since it was generated, rather than starting from scratch:
+
+```bash
+highli brag --amend
+```
+
+| Flag | Description |
+|------|-------------|
+| `--from <date>` | Period start (YYYY-MM-DD) |
+| `--to <date>` | Period end (YYYY-MM-DD) |
+| `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
+| `--amend` | Update the last brag doc with new data since it was generated |
 
 ## Adding a data source
 
@@ -136,7 +187,8 @@ npm run start        # Run built version
 
 ```bash
 npm run build && npm link
-highli --timeframe "last 6 months"
+highli setup
+highli review --timeframe "last 6 months"
 ```
 
 ## Stack

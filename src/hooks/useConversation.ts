@@ -55,7 +55,7 @@ export function useConversation(timeframe?: { from: string; to: string }) {
           system: buildSystemPrompt(timeframe),
           messages: coreMessagesRef.current,
           tools: getEnabledTools(),
-          maxSteps: 10,
+          maxSteps: 20,
           onStepFinish: ({ toolCalls, toolResults }) => {
             if (toolCalls && toolCalls.length > 0) {
               setActiveTools((prev) =>
