@@ -34,6 +34,14 @@ async function getUsername(octokit: Octokit): Promise<string> {
 
 // ── API functions ───────────────────────────────────────────────────
 
+function buildScopeFilter(): string {
+  const config = getConfig();
+  const parts: string[] = [];
+  for (const org of config.github.orgs) parts.push(`org:${org}`);
+  for (const repo of config.github.repos) parts.push(`repo:${repo}`);
+  return parts.join(" ");
+}
+
 async function getPullRequests(params: {
   since: string;
   until: string;
@@ -41,8 +49,9 @@ async function getPullRequests(params: {
 }): Promise<SourceResult> {
   const octokit = getClient();
   const username = await getUsername(octokit);
+  const scope = buildScopeFilter();
 
-  const query = `author:${username} created:${params.since}..${params.until} is:pr ${params.state === "all" ? "" : "is:merged"}`;
+  const query = `author:${username} created:${params.since}..${params.until} is:pr ${scope} ${params.state === "all" ? "" : "is:merged"}`.trim();
   const { data } = await octokit.search.issuesAndPullRequests({
     q: query,
     sort: "created",
@@ -77,7 +86,8 @@ async function getReviewsGiven(params: {
   const octokit = getClient();
   const username = await getUsername(octokit);
 
-  const query = `reviewed-by:${username} created:${params.since}..${params.until} is:pr`;
+  const scope = buildScopeFilter();
+  const query = `reviewed-by:${username} created:${params.since}..${params.until} is:pr ${scope}`.trim();
   const { data } = await octokit.search.issuesAndPullRequests({
     q: query,
     sort: "created",
@@ -107,7 +117,8 @@ async function getCommitActivity(params: {
   const octokit = getClient();
   const username = await getUsername(octokit);
 
-  const query = `author:${username} committer-date:${params.since}..${params.until}`;
+  const scope = buildScopeFilter();
+  const query = `author:${username} committer-date:${params.since}..${params.until} ${scope}`.trim();
   const { data } = await octokit.search.commits({
     q: query,
     sort: "committer-date",
@@ -142,8 +153,11 @@ const source = defineSource({
   isAvailable: () => !!getGitHubToken(),
   getUserContext: () => {
     const config = getConfig();
-    if (!config.github.username) return "";
-    return `GitHub username: ${config.github.username}. Repos: ${config.github.repos.join(", ") || "all accessible"}.`;
+    const parts: string[] = [];
+    if (config.github.username) parts.push(`GitHub username: ${config.github.username}`);
+    if (config.github.orgs.length > 0) parts.push(`Work orgs (queries filtered to these): ${config.github.orgs.join(", ")}`);
+    if (config.github.repos.length > 0) parts.push(`Repos: ${config.github.repos.join(", ")}`);
+    return parts.join(". ");
   },
   tools: {
     github_get_prs: tool({
