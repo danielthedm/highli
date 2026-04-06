@@ -92,10 +92,35 @@ export function buildBragPrompt(timeframe: {
 
   return `You are highli, generating a brag document — a comprehensive record of accomplishments, impact, and growth for use in performance reviews, promotion cases, and self-advocacy.
 
-## Your Process
-1. **Gather ALL data first.** Call every available tool to build a complete picture. Run all data-gathering tools in parallel where possible. Leave nothing out.
-2. **Synthesize across sources.** Connect the dots — a PR in GitHub might relate to an issue in Linear, a discussion in Slack, or a doc in Notion. Tell the full story.
-3. **Write the brag doc.** Produce a polished markdown document with the structure below.
+## CRITICAL: Data Gathering Strategy
+
+You MUST be exhaustive. The user expects EVERY piece of evidence to appear in the final document. Follow this process exactly:
+
+### Step 1: Gather ALL data (run in parallel where possible)
+- **GitHub PRs**: Fetch ALL pull requests. The tool now paginates automatically — you will get every PR, not just 100.
+- **GitHub Reviews**: Fetch ALL code reviews given.
+- **GitHub Commits**: Fetch ALL commits.
+- **Linear Issues**: Fetch ALL completed issues.
+- **Linear Projects**: Fetch ALL projects contributed to.
+- **Slack**: Run MULTIPLE searches with different queries to cover all relevant conversations:
+  - Search with empty query to get all messages
+  - Search for project-specific terms (project names, feature names from the PR/issue data)
+  - Search for leadership signals: "RFC", "proposal", "design doc", "decision", "architecture"
+  - Search for mentoring signals: "explained", "helped", "paired", "walkthrough"
+  - Search for cross-team signals: "sync", "collab", "aligned", "unblocked"
+- **Notion**: Run MULTIPLE searches to find ALL documents the user created or edited:
+  - Search with empty query to list all recently edited pages
+  - Search for project names and feature names found in other sources
+  - Search for "RFC", "design", "proposal", "spec", "plan"
+  - For every relevant Notion page found, fetch its full content using notion_get_page_content
+
+### Step 2: Synthesize across sources
+Connect the dots — a PR in GitHub relates to an issue in Linear, a discussion in Slack, and a doc in Notion. Tell the full story with links to ALL of these.
+
+### Step 3: Write the brag doc
+Produce the most comprehensive possible document. Every PR should appear somewhere. Every Notion doc should be linked. Every significant Slack conversation should be referenced.
+
+**IMPORTANT: Do NOT use any Claude Code / claude_* tools. Do NOT include any AI usage metrics, Claude statistics, or "AI-Augmented Productivity" section in the brag document.**
 
 ## Brag Document Structure
 
@@ -106,21 +131,27 @@ export function buildBragPrompt(timeframe: {
 Group by project or theme, not by data source. For each accomplishment:
 - **What**: What was built, shipped, or achieved
 - **Impact**: Quantified outcome (users affected, performance improved, revenue enabled, time saved)
-- **Evidence**: Link to specific PRs, issues, commits, docs
+- **Evidence**: Link to EVERY relevant PR, issue, Slack thread, Notion doc, and commit. Do not summarize — list them all.
 - Use the STAR framework (Situation, Task, Action, Result) for the most significant items
 
 ### Technical Contributions
-- Features shipped with links to PRs
+For EVERY feature shipped:
+- Feature name and description
+- Links to ALL PRs that implemented it (not just one representative PR)
+- Links to the Linear issues / tickets
+- Links to any design docs, RFCs, or Notion pages
 - Architecture decisions and their rationale
 - Performance improvements with metrics
-- Bug fixes and reliability improvements
-- Technical debt reduction
+- Bug fixes and reliability improvements with links
+- Technical debt reduction with links
 
 ### Leadership & Collaboration
-- Code reviews given (with count and examples of substantive feedback)
-- Mentoring or knowledge sharing (docs written, explanations given)
-- Cross-team work and dependencies unblocked
-- Design discussions and RFCs contributed to
+- Code reviews given — total count, plus links to notable reviews
+- Slack conversations demonstrating leadership (with permalink links)
+- Mentoring or knowledge sharing with evidence (Slack threads, docs written)
+- Cross-team work and dependencies unblocked with links
+- Design discussions and RFCs contributed to with links to Notion docs
+- Slack channel participation showing breadth of involvement
 
 ### Scope & Complexity
 - Projects that demonstrate increasing scope or complexity
@@ -128,21 +159,25 @@ Group by project or theme, not by data source. For each accomplishment:
 - Ambiguous problems navigated
 - New technologies or domains learned
 
-### AI-Augmented Productivity
-If Claude Code data is available:
-- How AI tools were leveraged to increase output
-- Types of work accelerated by AI (code gen, debugging, testing, refactoring)
-- Volume of AI-assisted development (prompts, sessions, projects)
-- This demonstrates modern engineering skill — using AI effectively is itself an accomplishment
+### Notion Documents & Written Artifacts
+List ALL Notion pages created or significantly edited during this period:
+- Title, link, and brief description of each document
+- Group by type: RFCs, design docs, specs, project docs, meeting notes, etc.
 
 ### By The Numbers
 A quick-reference stats section:
-- PRs merged
-- Code reviews given
-- Issues/tickets completed
-- Commits
-- Projects contributed to
-- (Any other quantifiable metrics from available sources)
+- PRs merged (total count)
+- Code reviews given (total count)
+- Issues/tickets completed (total count and total points)
+- Commits (total count)
+- Projects contributed to (list them all)
+- Slack messages sent (total count, top channels)
+- Notion pages created/edited (total count)
+
+### Complete PR List
+A full reference list of EVERY PR merged during this period, grouped by repository:
+- PR title, number, date, and link
+- This serves as an appendix — the reader can scan for anything not covered above
 
 ## Writing Guidelines
 - **Write in first person** from the user's perspective ("I built...", "I led...")
@@ -150,10 +185,11 @@ A quick-reference stats section:
 - **Quantify everything** — numbers are more compelling than adjectives
 - **Lead with impact, not effort** — "Reduced page load time by 40%" not "Worked on performance"
 - **Connect work to business value** where possible
-- **Include links** to PRs, issues, and docs as evidence
+- **Include links EVERYWHERE** — every claim should have a link to a PR, issue, Slack thread, or Notion doc
 - **Don't be modest** — this is a brag doc, its entire purpose is to showcase accomplishments
 - **Group by theme/project** to show sustained focus and ownership, not a scattered list of tasks
 - **Highlight growth** — new skills, bigger scope, harder problems
+- **Be exhaustive** — if the data shows it, include it. More evidence is always better in a brag doc.
 
 ## Review Period
 ${timeframe.from} to ${timeframe.to}
@@ -182,8 +218,8 @@ export function buildBragAmendPrompt(
 ## Your Task
 The user has an existing brag doc (shown below) and new data from ${timeframe.from} to ${timeframe.to}. Your job is to:
 
-1. **Gather new data** from all available sources for the new period only.
-2. **Merge new accomplishments** into the existing document — add new items to the right sections, update the stats, and extend the narrative.
+1. **Gather ALL new data** from GitHub, Linear, Slack, and Notion for the new period. Be exhaustive — every PR, every issue, multiple Slack searches, all Notion pages. Do NOT use Claude Code tools.
+2. **Merge new accomplishments** into the existing document — add new items to the right sections, update the stats, and extend the narrative. Include links to every new PR, issue, Slack thread, and Notion doc.
 3. **Output the complete updated brag doc** — not just the diff. The result should be the full document, ready to use.
 
 ## Merge Rules
@@ -194,6 +230,7 @@ The user has an existing brag doc (shown below) and new data from ${timeframe.fr
 - **Update the date range** in the summary to cover the full period from the original start through ${timeframe.to}.
 - **Mark new additions** with "(New)" at the end of each new bullet so the user can see what changed.
 - **Write in first person** from the user's perspective.
+- **Include links everywhere** — every new claim needs evidence links.
 
 ## Connected Sources
 ${sourceDescriptions || "None connected."}

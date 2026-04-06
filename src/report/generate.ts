@@ -21,7 +21,7 @@ const USER_MESSAGES: Record<GenerateMode, (from: string, to: string) => string> 
   report: (from, to) =>
     `Generate a comprehensive insights report for my work from ${from} to ${to}. Pull data from all available sources and analyze everything. Start by gathering data from all sources in parallel, then write the full report.`,
   brag: (from, to) =>
-    `Generate a brag document for my work from ${from} to ${to}. Pull data from every available source — GitHub, Linear, Slack, Notion, Claude Code logs, everything connected. Gather all data first in parallel, then synthesize into the brag doc.`,
+    `Generate the most comprehensive possible brag document for my work from ${from} to ${to}. Pull data from GitHub, Linear, Slack, and Notion — do NOT use Claude Code tools. Gather ALL data first: every PR, every review, every commit, every Linear issue, every Notion doc. Run multiple Slack searches with different queries. Fetch the content of every relevant Notion page. Then synthesize into an exhaustive brag doc with links to everything.`,
   "brag-amend": (from, to) =>
     `Update my existing brag document with new accomplishments from ${from} to ${to}. Pull data from all available sources for this new period, then merge the new items into the existing doc. Output the complete updated document.`,
 };
@@ -46,6 +46,14 @@ export async function generate(
   const tools = getEnabledTools();
   const userMessage = USER_MESSAGES[mode](timeframe.from, timeframe.to);
 
+  // Scale maxSteps based on timeframe length — longer periods produce more
+  // data requiring more tool calls (pagination, multiple searches, fetching
+  // individual Notion page contents, etc.).
+  const days = Math.max(1, Math.ceil(
+    (new Date(timeframe.to).getTime() - new Date(timeframe.from).getTime()) / (1000 * 60 * 60 * 24),
+  ));
+  const maxSteps = days > 365 ? 200 : days > 180 ? 150 : days > 90 ? 100 : 75;
+
   let fullText = "";
 
   try {
@@ -54,7 +62,7 @@ export async function generate(
       system,
       messages: [{ role: "user", content: userMessage }],
       tools,
-      maxSteps: 25,
+      maxSteps,
     });
 
     for await (const part of result.fullStream) {

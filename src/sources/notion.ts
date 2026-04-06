@@ -23,38 +23,50 @@ async function searchPages(params: {
 }): Promise<SourceResult> {
   const client = getClient();
 
-  const response = await client.search({
-    query: params.query,
-    sort: { direction: "descending", timestamp: "last_edited_time" },
-    page_size: 50,
-  });
+  const allItems: SourceResult["items"] = [];
+  let startCursor: string | undefined;
 
-  const items = response.results
-    .filter(
-      (r): r is Extract<typeof r, { object: "page" }> => r.object === "page",
-    )
-    .filter((page) => {
-      if (!params.since || !params.until) return true;
-      const edited = "last_edited_time" in page ? page.last_edited_time : "";
-      return edited >= params.since && edited <= params.until;
-    })
-    .map((page) => {
-      const title = getPageTitle(page);
-      const edited = "last_edited_time" in page ? page.last_edited_time : "";
-      const url = "url" in page ? page.url : undefined;
-      return {
-        title,
-        description: `Last edited: ${edited.split("T")[0]}`,
-        date: edited.split("T")[0],
-        url,
-      };
+  while (true) {
+    const response = await client.search({
+      query: params.query,
+      sort: { direction: "descending", timestamp: "last_edited_time" },
+      page_size: 100,
+      start_cursor: startCursor,
     });
+
+    const pages = response.results
+      .filter(
+        (r): r is Extract<typeof r, { object: "page" }> => r.object === "page",
+      )
+      .filter((page) => {
+        if (!params.since || !params.until) return true;
+        const edited = "last_edited_time" in page ? page.last_edited_time : "";
+        return edited >= params.since && edited <= params.until;
+      })
+      .map((page) => {
+        const title = getPageTitle(page);
+        const edited = "last_edited_time" in page ? page.last_edited_time : "";
+        const url = "url" in page ? page.url : undefined;
+        return {
+          title,
+          description: `Last edited: ${edited.split("T")[0]}`,
+          date: edited.split("T")[0],
+          url,
+        };
+      });
+
+    allItems.push(...pages);
+
+    if (!response.has_more || !response.next_cursor) break;
+    startCursor = response.next_cursor;
+    if (allItems.length >= 500) break; // Safety cap
+  }
 
   return {
     source: "Notion Pages",
-    summary: `Found ${items.length} pages matching "${params.query}"`,
-    items,
-    totalCount: items.length,
+    summary: `Found ${allItems.length} pages matching "${params.query}"`,
+    items: allItems,
+    totalCount: allItems.length,
   };
 }
 

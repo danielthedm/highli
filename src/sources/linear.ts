@@ -24,44 +24,58 @@ async function getCompletedIssues(params: {
   const client = getClient();
   const me = await client.viewer;
 
-  const issues = await client.issues({
-    filter: {
-      assignee: { id: { eq: me.id } },
-      completedAt: {
-        gte: new Date(params.since),
-        lte: new Date(params.until),
-      },
-    },
-    orderBy: "updatedAt" as any,
-    first: 100,
-  });
+  const allItems: SourceResult["items"] = [];
+  let afterCursor: string | undefined;
+  let totalFetched = 0;
 
-  const items = await Promise.all(
-    issues.nodes.map(async (issue) => {
-      const state = await issue.state;
-      const project = await issue.project;
-      return {
-        title: `${issue.identifier}: ${issue.title}`,
-        description: `${state?.name ?? "Done"}${project ? ` — Project: ${project.name}` : ""}${issue.estimate ? ` — ${issue.estimate} pts` : ""}`,
-        date: issue.completedAt?.toISOString().split("T")[0] ?? "",
-        url: issue.url,
-        metrics: {
-          ...(issue.estimate ? { points: issue.estimate } : {}),
+  while (true) {
+    const issues = await client.issues({
+      filter: {
+        assignee: { id: { eq: me.id } },
+        completedAt: {
+          gte: new Date(params.since),
+          lte: new Date(params.until),
         },
-      };
-    }),
-  );
+      },
+      orderBy: "updatedAt" as any,
+      first: 100,
+      after: afterCursor,
+    });
 
-  const totalPoints = items.reduce(
+    const items = await Promise.all(
+      issues.nodes.map(async (issue) => {
+        const state = await issue.state;
+        const project = await issue.project;
+        return {
+          title: `${issue.identifier}: ${issue.title}`,
+          description: `${state?.name ?? "Done"}${project ? ` — Project: ${project.name}` : ""}${issue.estimate ? ` — ${issue.estimate} pts` : ""}`,
+          date: issue.completedAt?.toISOString().split("T")[0] ?? "",
+          url: issue.url,
+          metrics: {
+            ...(issue.estimate ? { points: issue.estimate } : {}),
+          },
+        };
+      }),
+    );
+
+    allItems.push(...items);
+    totalFetched += issues.nodes.length;
+
+    if (!issues.pageInfo.hasNextPage || !issues.pageInfo.endCursor) break;
+    afterCursor = issues.pageInfo.endCursor;
+    if (totalFetched >= 1000) break; // Safety cap
+  }
+
+  const totalPoints = allItems.reduce(
     (sum, item) => sum + (item.metrics?.points ?? 0),
     0,
   );
 
   return {
     source: "Linear Issues Completed",
-    summary: `Completed ${issues.nodes.length} issues (${totalPoints} points) from ${params.since} to ${params.until}`,
-    items,
-    totalCount: issues.nodes.length,
+    summary: `Completed ${allItems.length} issues (${totalPoints} points) from ${params.since} to ${params.until}`,
+    items: allItems,
+    totalCount: allItems.length,
   };
 }
 

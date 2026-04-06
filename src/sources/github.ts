@@ -52,30 +52,46 @@ async function getPullRequests(params: {
   const scope = buildScopeFilter();
 
   const query = `author:${username} created:${params.since}..${params.until} is:pr ${scope} ${params.state === "all" ? "" : "is:merged"}`.trim();
-  const { data } = await octokit.search.issuesAndPullRequests({
-    q: query,
-    sort: "created",
-    order: "desc",
-    per_page: 100,
-  });
 
-  const items = data.items.map((pr) => ({
-    title: pr.title,
-    description: `#${pr.number} in ${pr.repository_url.split("/").slice(-2).join("/")} — ${pr.state}`,
-    date: pr.created_at.split("T")[0],
-    url: pr.html_url,
-    metrics: { comments: pr.comments },
-  }));
+  const allItems: SourceResult["items"] = [];
+  let totalCount = 0;
+  let page = 1;
+
+  while (true) {
+    const { data } = await octokit.search.issuesAndPullRequests({
+      q: query,
+      sort: "created",
+      order: "desc",
+      per_page: 100,
+      page,
+    });
+
+    if (page === 1) totalCount = data.total_count;
+
+    for (const pr of data.items) {
+      allItems.push({
+        title: pr.title,
+        description: `#${pr.number} in ${pr.repository_url.split("/").slice(-2).join("/")} — ${pr.state}`,
+        date: pr.created_at.split("T")[0],
+        url: pr.html_url,
+        metrics: { comments: pr.comments },
+      });
+    }
+
+    if (data.items.length < 100 || allItems.length >= totalCount) break;
+    page++;
+    if (page > 10) break; // GitHub search API max: 1000 results
+  }
 
   const repos = new Set(
-    data.items.map((pr) => pr.repository_url.split("/").slice(-2).join("/")),
+    allItems.map((item) => item.description.split(" in ")[1]?.split(" —")[0]).filter(Boolean),
   );
 
   return {
     source: "GitHub Pull Requests",
-    summary: `Found ${data.total_count} PRs by ${username} (${params.since} to ${params.until}) across ${repos.size} repos: ${[...repos].join(", ")}`,
-    items,
-    totalCount: data.total_count,
+    summary: `Found ${totalCount} PRs by ${username} (${params.since} to ${params.until}) across ${repos.size} repos: ${[...repos].join(", ")}`,
+    items: allItems,
+    totalCount,
   };
 }
 
@@ -88,25 +104,41 @@ async function getReviewsGiven(params: {
 
   const scope = buildScopeFilter();
   const query = `reviewed-by:${username} created:${params.since}..${params.until} is:pr ${scope}`.trim();
-  const { data } = await octokit.search.issuesAndPullRequests({
-    q: query,
-    sort: "created",
-    order: "desc",
-    per_page: 100,
-  });
 
-  const items = data.items.map((pr) => ({
-    title: pr.title,
-    description: `Reviewed #${pr.number} in ${pr.repository_url.split("/").slice(-2).join("/")}`,
-    date: pr.created_at.split("T")[0],
-    url: pr.html_url,
-  }));
+  const allItems: SourceResult["items"] = [];
+  let totalCount = 0;
+  let page = 1;
+
+  while (true) {
+    const { data } = await octokit.search.issuesAndPullRequests({
+      q: query,
+      sort: "created",
+      order: "desc",
+      per_page: 100,
+      page,
+    });
+
+    if (page === 1) totalCount = data.total_count;
+
+    for (const pr of data.items) {
+      allItems.push({
+        title: pr.title,
+        description: `Reviewed #${pr.number} in ${pr.repository_url.split("/").slice(-2).join("/")}`,
+        date: pr.created_at.split("T")[0],
+        url: pr.html_url,
+      });
+    }
+
+    if (data.items.length < 100 || allItems.length >= totalCount) break;
+    page++;
+    if (page > 10) break;
+  }
 
   return {
     source: "GitHub Reviews Given",
-    summary: `Reviewed ${data.total_count} PRs (${params.since} to ${params.until})`,
-    items,
-    totalCount: data.total_count,
+    summary: `Reviewed ${totalCount} PRs (${params.since} to ${params.until})`,
+    items: allItems,
+    totalCount,
   };
 }
 
@@ -119,27 +151,45 @@ async function getCommitActivity(params: {
 
   const scope = buildScopeFilter();
   const query = `author:${username} committer-date:${params.since}..${params.until} ${scope}`.trim();
-  const { data } = await octokit.search.commits({
-    q: query,
-    sort: "committer-date",
-    order: "desc",
-    per_page: 100,
-  });
 
-  const items = data.items.map((commit) => ({
-    title: commit.commit.message.split("\n")[0],
-    description: `in ${commit.repository.full_name}`,
-    date: (commit.commit.committer?.date ?? "").split("T")[0],
-    url: commit.html_url,
-  }));
+  const allItems: SourceResult["items"] = [];
+  let totalCount = 0;
+  let page = 1;
 
-  const repos = new Set(data.items.map((c) => c.repository.full_name));
+  while (true) {
+    const { data } = await octokit.search.commits({
+      q: query,
+      sort: "committer-date",
+      order: "desc",
+      per_page: 100,
+      page,
+    });
+
+    if (page === 1) totalCount = data.total_count;
+
+    for (const commit of data.items) {
+      allItems.push({
+        title: commit.commit.message.split("\n")[0],
+        description: `in ${commit.repository.full_name}`,
+        date: (commit.commit.committer?.date ?? "").split("T")[0],
+        url: commit.html_url,
+      });
+    }
+
+    if (data.items.length < 100 || allItems.length >= totalCount) break;
+    page++;
+    if (page > 10) break;
+  }
+
+  const repos = new Set(
+    allItems.map((item) => item.description.replace("in ", "")).filter(Boolean),
+  );
 
   return {
     source: "GitHub Commits",
-    summary: `${data.total_count} commits across ${repos.size} repos (${params.since} to ${params.until})`,
-    items,
-    totalCount: data.total_count,
+    summary: `${totalCount} commits across ${repos.size} repos (${params.since} to ${params.until})`,
+    items: allItems,
+    totalCount,
   };
 }
 

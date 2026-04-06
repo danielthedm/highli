@@ -77,6 +77,7 @@ program
     "--timeframe <range>",
     'Natural language timeframe (e.g., "Q1 2026", "last 6 months")',
   )
+  .option("--all", "Include all time (no date filter)")
   .option(
     "--amend",
     "Update the last brag doc with new data since it was generated",
@@ -116,8 +117,17 @@ program
       timeframe = { from: options.from, to: options.to };
     } else if (options.timeframe) {
       timeframe = parseDateRange(options.timeframe);
+    } else if (options.all) {
+      const today = new Date().toISOString().split("T")[0];
+      timeframe = { from: "2000-01-01", to: today };
     } else {
-      timeframe = parseDateRange("last 6 months");
+      console.error(
+        "Error: a timeframe is required.\n\n" +
+          "  --timeframe <range>   e.g. \"Q1 2026\", \"last 6 months\"\n" +
+          "  --from <date> --to <date>   explicit date range (YYYY-MM-DD)\n" +
+          "  --all                 all time\n",
+      );
+      process.exit(1);
     }
 
     render(<ReportApp timeframe={timeframe} mode="brag" />);

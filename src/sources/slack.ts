@@ -32,18 +32,32 @@ async function searchMessages(params: {
     query += ` in:${params.channels.join(" in:")}`;
   }
 
-  const result = await client.search.messages({
-    query,
-    sort: "timestamp",
-    sort_dir: "desc",
-    count: 100,
-  });
+  const allMatches: any[] = [];
+  let totalCount = 0;
+  let page = 1;
 
-  const matches = result.messages?.matches ?? [];
-  const items = matches.map((msg) => ({
+  while (true) {
+    const result = await client.search.messages({
+      query,
+      sort: "timestamp",
+      sort_dir: "desc",
+      count: 100,
+      page,
+    });
+
+    const matches = result.messages?.matches ?? [];
+    if (page === 1) totalCount = result.messages?.total ?? 0;
+    allMatches.push(...matches);
+
+    if (matches.length < 100 || allMatches.length >= totalCount) break;
+    page++;
+    if (page > 10) break; // Cap at 1000 messages
+  }
+
+  const items = allMatches.map((msg) => ({
     title:
-      (msg.text ?? "").length > 100
-        ? (msg.text ?? "").substring(0, 100) + "..."
+      (msg.text ?? "").length > 200
+        ? (msg.text ?? "").substring(0, 200) + "..."
         : (msg.text ?? ""),
     description: `in #${msg.channel?.name ?? "unknown"}`,
     date: msg.ts
@@ -52,13 +66,13 @@ async function searchMessages(params: {
     url: msg.permalink,
   }));
 
-  const channels = new Set(matches.map((m) => m.channel?.name).filter(Boolean));
+  const channels = new Set(allMatches.map((m) => m.channel?.name).filter(Boolean));
 
   return {
     source: "Slack Messages",
-    summary: `Found ${result.messages?.total ?? 0} messages across ${channels.size} channels (${params.since} to ${params.until}). Top channels: ${[...channels].slice(0, 5).join(", ")}`,
+    summary: `Found ${totalCount} messages across ${channels.size} channels (${params.since} to ${params.until}). Top channels: ${[...channels].slice(0, 10).join(", ")}`,
     items,
-    totalCount: result.messages?.total ?? 0,
+    totalCount,
   };
 }
 
