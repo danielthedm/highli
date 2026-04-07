@@ -1,10 +1,29 @@
 {
   "name": "highli",
   "version": "0.1.0",
-  "description": "AI-powered self-performance review assistant",
+  "description": "AI powered CLI that writes your self-performance review using real data from GitHub, Slack, Linear, Jira, and more",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielthedm/highli.git"
+  },
+  "keywords": [
+    "performance-review",
+    "brag-doc",
+    "cli",
+    "ai",
+    "github",
+    "slack",
+    "linear",
+    "jira",
+    "productivity"
+  ],
+  "files": [
+    "dist"
+  ],
   "bin": {
-    "highli": "./dist/index.js"
+    "highli": "dist/index.js"
   },
   "scripts": {
     "dev": "tsx src/index.tsx",

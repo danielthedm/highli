@@ -1,11 +1,11 @@
 # highli
 
-AI-powered CLI tool that helps you write self-performance reviews by pulling real data from your work tools and iterating with you in a chat interface.
+AI powered CLI tool that helps you write self-performance reviews by pulling real data from your work tools and iterating with you in a chat interface.
 
 ## TL;DR
 
 ```bash
-npm install && npm run build && npm link      # install
+npm install -g highli                          # install
 cp .env.example .env                          # add your API keys
 highli setup                                  # connect your data sources
 highli brag --all                              # generate a brag doc to see what you've done
