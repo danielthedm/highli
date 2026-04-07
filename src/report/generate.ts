@@ -69,6 +69,7 @@ export async function generate(
       messages: [{ role: "user", content: userMessage }],
       tools,
       maxSteps,
+      maxTokens: 64000,
     });
 
     for await (const part of result.fullStream) {
