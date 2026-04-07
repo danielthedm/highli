@@ -8,7 +8,8 @@ AI-powered CLI tool that helps you write self-performance reviews by pulling rea
 npm install && npm run build && npm link      # install
 cp .env.example .env                          # add your API keys
 highli setup                                  # connect your data sources
-highli brag --timeframe "last 6 months"       # generate a brag doc to see what you've done
+highli brag --all                              # generate a brag doc to see what you've done
+highli brag --amend                            # update your last brag doc with new data
 highli report-on --timeframe "Q1 2026"        # generate a report about a direct report
 highli review --timeframe "last 6 months"     # start your self-review with that context
 ```
