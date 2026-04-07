@@ -5,6 +5,7 @@ import { defineSource, getSourceMethod } from "./registry.js";
 import { formatSourceResult, type SourceResult } from "./types.js";
 import { getConfig } from "../config/defaults.js";
 import { claudeMcpQuery } from "./claude-mcp.js";
+import { getTargetUser } from "../report/target-user.js";
 
 const dateRange = {
   since: z.string().describe("Start date in YYYY-MM-DD format"),
@@ -22,7 +23,8 @@ async function getCompletedIssues(params: {
   until: string;
 }): Promise<SourceResult> {
   const client = getClient();
-  const me = await client.viewer;
+  const target = getTargetUser();
+  const userId = target?.linear?.userId ?? (await client.viewer).id;
 
   const allItems: SourceResult["items"] = [];
   let afterCursor: string | undefined;
@@ -31,7 +33,7 @@ async function getCompletedIssues(params: {
   while (true) {
     const issues = await client.issues({
       filter: {
-        assignee: { id: { eq: me.id } },
+        assignee: { id: { eq: userId } },
         completedAt: {
           gte: new Date(params.since),
           lte: new Date(params.until),
@@ -84,8 +86,19 @@ async function getProjects(params: {
   until: string;
 }): Promise<SourceResult> {
   const client = getClient();
-  const me = await client.viewer;
-  const teams = await me.teams();
+  const target = getTargetUser();
+
+  let userId: string;
+  let teams;
+  if (target?.linear?.userId) {
+    userId = target.linear.userId;
+    const user = await client.user(userId);
+    teams = await user.teams();
+  } else {
+    const me = await client.viewer;
+    userId = me.id;
+    teams = await me.teams();
+  }
 
   const allProjects: SourceResult["items"] = [];
 
@@ -102,7 +115,7 @@ async function getProjects(params: {
 
     for (const project of projects.nodes) {
       const members = await project.members();
-      const isMember = members.nodes.some((m) => m.id === me.id);
+      const isMember = members.nodes.some((m) => m.id === userId);
       if (!isMember) continue;
 
       allProjects.push({
@@ -142,8 +155,10 @@ const source = defineSource({
       parameters: z.object(dateRange),
       execute: async (params) => {
         if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          const who = target ? `${target.name}'s (email: ${target.email})` : "my";
           return claudeMcpQuery(
-            `List my completed Linear issues from ${params.since} to ${params.until}. For each include: issue identifier, title, project name, point estimate, and completion date. Format as a markdown list.`,
+            `List ${who} completed Linear issues from ${params.since} to ${params.until}. For each include: issue identifier, title, project name, point estimate, and completion date. Format as a markdown list.`,
           );
         }
         return formatSourceResult(await getCompletedIssues(params));
@@ -155,8 +170,10 @@ const source = defineSource({
       parameters: z.object(dateRange),
       execute: async (params) => {
         if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          const who = target ? `${target.name} (email: ${target.email})` : "I";
           return claudeMcpQuery(
-            `List the Linear projects I contributed to that were active from ${params.since} to ${params.until}. For each include: project name, status, progress percentage, and target date. Format as markdown.`,
+            `List the Linear projects ${who} contributed to that were active from ${params.since} to ${params.until}. For each include: project name, status, progress percentage, and target date. Format as markdown.`,
           );
         }
         return formatSourceResult(await getProjects(params));

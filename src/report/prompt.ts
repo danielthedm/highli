@@ -3,6 +3,7 @@ import {
   getActiveSourceNames,
   getSourceContext,
 } from "../sources/registry.js";
+import type { TargetUser } from "./target-user.js";
 
 export function buildReportPrompt(timeframe: {
   from: string;
@@ -124,72 +125,64 @@ Produce the most comprehensive possible document. Every PR should appear somewhe
 
 ## Brag Document Structure
 
+This is a **list-format brag doc** — not a formal review document. Keep it scannable. Group evidence by project/theme and list the artifacts (PRs, docs, Slack threads, issues) directly. Minimal prose — let the links speak.
+
 ### Summary
-2-3 sentences capturing the most impressive narrative of this period. Lead with the strongest impact.
+2-3 sentences of the biggest highlights. Keep it punchy.
 
-### Key Accomplishments
-Group by project or theme, not by data source. For each accomplishment:
-- **What**: What was built, shipped, or achieved
-- **Impact**: Quantified outcome (users affected, performance improved, revenue enabled, time saved)
-- **Evidence**: Link to EVERY relevant PR, issue, Slack thread, Notion doc, and commit. Do not summarize — list them all.
-- Use the STAR framework (Situation, Task, Action, Result) for the most significant items
+### Highlights
+Group by **project or theme**. Each group is a heading with a one-line description of what was accomplished, followed by flat lists of evidence organized by type. Example structure:
 
-### Technical Contributions
-For EVERY feature shipped:
-- Feature name and description
-- Links to ALL PRs that implemented it (not just one representative PR)
-- Links to the Linear issues / tickets
-- Links to any design docs, RFCs, or Notion pages
-- Architecture decisions and their rationale
-- Performance improvements with metrics
-- Bug fixes and reliability improvements with links
-- Technical debt reduction with links
+#### [Project/Theme Name]
+One-line summary of what was done and its impact.
 
-### Leadership & Collaboration
-- Code reviews given — total count, plus links to notable reviews
-- Slack conversations demonstrating leadership (with permalink links)
-- Mentoring or knowledge sharing with evidence (Slack threads, docs written)
-- Cross-team work and dependencies unblocked with links
-- Design discussions and RFCs contributed to with links to Notion docs
-- Slack channel participation showing breadth of involvement
+**PRs:**
+- [PR title](link) — brief note if needed
+- [PR title](link)
 
-### Scope & Complexity
-- Projects that demonstrate increasing scope or complexity
-- Multi-system or full-stack work
-- Ambiguous problems navigated
-- New technologies or domains learned
+**Issues/Tickets:**
+- [Issue title](link)
+- [Issue title](link)
 
-### Notion Documents & Written Artifacts
-List ALL Notion pages created or significantly edited during this period:
-- Title, link, and brief description of each document
-- Group by type: RFCs, design docs, specs, project docs, meeting notes, etc.
+**Docs & RFCs:**
+- [Notion page title](link)
+- [Design doc title](link)
+
+**Slack:**
+- [Thread topic/quote snippet](permalink) — context if needed
+- [Thread topic/quote snippet](permalink)
+
+**Code Reviews:**
+- [PR title reviewed](link) — notable feedback given if any
+
+Repeat this pattern for each project/theme. Not every group needs all categories — only include categories that have items.
+
+### Other Contributions
+Anything that doesn't fit neatly into a project theme — one-off reviews, cross-team help, mentoring moments, etc. Same list format.
 
 ### By The Numbers
-A quick-reference stats section:
-- PRs merged (total count)
-- Code reviews given (total count)
-- Issues/tickets completed (total count and total points)
-- Commits (total count)
-- Projects contributed to (list them all)
-- Slack messages sent (total count, top channels)
-- Notion pages created/edited (total count)
+Quick stats:
+- PRs merged: (count)
+- Code reviews given: (count)
+- Issues completed: (count, points if available)
+- Commits: (count)
+- Notion pages created/edited: (count)
+- Slack messages: (count, top channels)
+- Projects: (list names)
 
-### Complete PR List
-A full reference list of EVERY PR merged during this period, grouped by repository:
-- PR title, number, date, and link
-- This serves as an appendix — the reader can scan for anything not covered above
+### All PRs
+Complete list of every PR merged, grouped by repo:
+- [PR title #number](link) — date
 
 ## Writing Guidelines
-- **Write in first person** from the user's perspective ("I built...", "I led...")
-- **Be specific** — name projects, PRs, features, and dates
-- **Quantify everything** — numbers are more compelling than adjectives
-- **Lead with impact, not effort** — "Reduced page load time by 40%" not "Worked on performance"
-- **Connect work to business value** where possible
-- **Include links EVERYWHERE** — every claim should have a link to a PR, issue, Slack thread, or Notion doc
-- **Don't be modest** — this is a brag doc, its entire purpose is to showcase accomplishments
-- **Group by theme/project** to show sustained focus and ownership, not a scattered list of tasks
-- **Highlight growth** — new skills, bigger scope, harder problems
-- **Be exhaustive** — if the data shows it, include it. More evidence is always better in a brag doc.
+- **List format, not essay format.** Bullets and links, not paragraphs.
+- **Write in first person** — "I built...", "I led..."
+- **Every item should be a link** wherever possible
+- **Minimal prose** — one-line descriptions, not STAR framework paragraphs
+- **Group by project/theme** to show sustained ownership
+- **Be exhaustive** — every PR, every doc, every relevant Slack thread should appear somewhere
+- **Don't be modest** — this is a brag doc
+- **Quantify when natural** but don't force metrics onto everything
 
 ## Review Period
 ${timeframe.from} to ${timeframe.to}
@@ -225,12 +218,12 @@ The user has an existing brag doc (shown below) and new data from ${timeframe.fr
 ## Merge Rules
 - **Add, don't duplicate.** If an item already exists in the doc, don't add it again.
 - **Preserve existing content.** Don't remove or rewrite anything that's already there unless it's factually wrong.
-- **Extend sections.** Add new bullets under existing headings. If a new project appears, add a new group for it.
+- **Extend sections.** Add new bullets/links under existing project groups. If a new project appears, add a new group for it.
 - **Update "By The Numbers"** with cumulative totals covering the full period (original + new).
 - **Update the date range** in the summary to cover the full period from the original start through ${timeframe.to}.
 - **Mark new additions** with "(New)" at the end of each new bullet so the user can see what changed.
+- **Keep the list format** — bullets and links, not prose paragraphs. Match the existing document's structure.
 - **Write in first person** from the user's perspective.
-- **Include links everywhere** — every new claim needs evidence links.
 
 ## Connected Sources
 ${sourceDescriptions || "None connected."}
@@ -245,6 +238,128 @@ ${existingBrag}
 
 ## New Data Period
 ${timeframe.from} to ${timeframe.to}
+
+Today's date: ${new Date().toISOString().split("T")[0]}`;
+}
+
+export function buildReportOnPrompt(
+  timeframe: { from: string; to: string },
+  targetUser: TargetUser,
+): string {
+  const sourceContext = getSourceContext();
+
+  const sourceDescriptions = getActiveSources()
+    .filter((s) => s.name !== "Claude Code")
+    .map((s) => `- **${s.name}**: ${s.description}`)
+    .join("\n");
+
+  const identities: string[] = [`- **Name**: ${targetUser.name}`, `- **Email**: ${targetUser.email}`];
+  if (targetUser.github) identities.push(`- **GitHub**: @${targetUser.github.username}`);
+  if (targetUser.linear) identities.push(`- **Linear**: ${targetUser.linear.displayName} (${targetUser.linear.userId})`);
+  if (targetUser.slack) identities.push(`- **Slack**: ${targetUser.slack.userId}`);
+  if (targetUser.notion) identities.push(`- **Notion**: ${targetUser.notion.userId}`);
+
+  return `You are highli, generating a report about a team member's work for their manager. This is a factual evidence-gathering document — present what ${targetUser.name} accomplished with links. The manager will draw their own conclusions.
+
+## CRITICAL: Data Gathering Strategy
+
+You MUST be exhaustive. The manager expects EVERY piece of evidence to appear in the final document. Follow this process exactly:
+
+### Step 1: Gather ALL data (run in parallel where possible)
+- **GitHub PRs**: Fetch ALL pull requests. The tool paginates automatically.
+- **GitHub Reviews**: Fetch ALL code reviews given.
+- **GitHub Commits**: Fetch ALL commits.
+- **Linear Issues**: Fetch ALL completed issues.
+- **Linear Projects**: Fetch ALL projects contributed to.
+- **Slack**: Run MULTIPLE searches with different queries:
+  - Search with empty query to get all messages
+  - Search for project-specific terms (project names, feature names from PR/issue data)
+  - Search for leadership signals: "RFC", "proposal", "design doc", "decision", "architecture"
+  - Search for collaboration signals: "helped", "paired", "unblocked", "reviewed"
+- **Notion**: Run MULTIPLE searches:
+  - Search with empty query to list recently edited pages
+  - Search for project names and feature names found in other sources
+  - Search for "RFC", "design", "proposal", "spec", "plan"
+  - For every relevant Notion page found, fetch its full content
+
+### Step 2: Synthesize across sources
+Connect the dots — a PR relates to a Linear issue, a Slack discussion, and a Notion doc. Group evidence by project/theme.
+
+### Step 3: Write the report
+Produce the most comprehensive possible document. Every PR should appear somewhere. Every Notion doc should be linked.
+
+**IMPORTANT: Do NOT use any Claude Code / claude_* tools. Do NOT include any AI usage metrics or Claude statistics.**
+
+## Target Person
+${identities.join("\n")}
+
+When using tools, the data will be filtered to this person automatically. For sources where identity couldn't be resolved, search by name.
+
+## Report Structure
+
+This is a **list-format report** — not a formal review document. Keep it scannable. Group evidence by project/theme and list the artifacts directly. Minimal prose — let the links speak.
+
+### Summary
+2-3 sentences of the biggest highlights for ${targetUser.name} this period.
+
+### Highlights
+Group by **project or theme**. Each group is a heading with a one-line description of what was accomplished, followed by flat lists of evidence organized by type:
+
+#### [Project/Theme Name]
+One-line summary of what ${targetUser.name} did and its impact.
+
+**PRs:**
+- [PR title](link) — brief note if needed
+
+**Issues/Tickets:**
+- [Issue title](link)
+
+**Docs & RFCs:**
+- [Notion page title](link)
+
+**Slack:**
+- [Thread topic/quote snippet](permalink) — context if needed
+
+**Code Reviews:**
+- [PR title reviewed](link) — notable feedback given if any
+
+Repeat for each project/theme. Only include categories that have items.
+
+### Other Contributions
+One-off reviews, cross-team help, mentoring, etc. Same list format.
+
+### By The Numbers
+Quick stats:
+- PRs merged: (count)
+- Code reviews given: (count)
+- Issues completed: (count, points if available)
+- Commits: (count)
+- Notion pages created/edited: (count)
+- Slack messages: (count, top channels)
+- Projects: (list names)
+
+### All PRs
+Complete list of every PR merged, grouped by repo:
+- [PR title #number](link) — date
+
+## Writing Guidelines
+- **List format, not essay format.** Bullets and links, not paragraphs.
+- **Write in third person** — "${targetUser.name} built...", "${targetUser.name} led..."
+- **Every item should be a link** wherever possible
+- **Minimal prose** — one-line descriptions, not paragraphs
+- **Group by project/theme** to show sustained ownership
+- **Be exhaustive** — every PR, every doc, every relevant Slack thread should appear somewhere
+- **Be factual** — present evidence, don't evaluate performance
+- **Quantify when natural** but don't force metrics onto everything
+
+## Review Period
+${timeframe.from} to ${timeframe.to}
+
+## Connected Sources
+${sourceDescriptions || "None connected."}
+
+## User Context
+${sourceContext || "No source-specific context configured."}
 
 Today's date: ${new Date().toISOString().split("T")[0]}`;
 }

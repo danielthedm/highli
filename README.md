@@ -9,6 +9,7 @@ npm install && npm run build && npm link      # install
 cp .env.example .env                          # add your API keys
 highli setup                                  # connect your data sources
 highli brag --timeframe "last 6 months"       # generate a brag doc to see what you've done
+highli report-on --timeframe "Q1 2026"        # generate a report about a direct report
 highli review --timeframe "last 6 months"     # start your self-review with that context
 ```
 
@@ -145,6 +146,25 @@ highli brag --amend
 | `--to <date>` | Period end (YYYY-MM-DD) |
 | `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
 | `--amend` | Update the last brag doc with new data since it was generated |
+
+#### `highli report-on`
+Generate a report about a direct report's work — accomplishments, impact, and evidence for performance reviews and 1:1s. Resolves the person's identity across all connected sources (GitHub, Linear, Slack, Notion) given their name and email.
+
+```bash
+# Interactive — prompts for name and email
+highli report-on --timeframe "Q1 2026"
+
+# With flags — skips prompts
+highli report-on --name "Jane Doe" --email "jane@company.com" --timeframe "last 3 months"
+```
+
+| Flag | Description |
+|------|-------------|
+| `--name <name>` | Direct report's full name |
+| `--email <email>` | Direct report's email address |
+| `--from <date>` | Period start (YYYY-MM-DD) |
+| `--to <date>` | Period end (YYYY-MM-DD) |
+| `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
 
 ## Adding a data source
 

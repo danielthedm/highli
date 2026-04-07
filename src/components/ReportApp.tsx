@@ -20,6 +20,7 @@ const MODE_CONFIG: Record<GenerateMode, { title: string; dir: string; prefix: st
   report: { title: "insights report", dir: "reports", prefix: "report" },
   brag: { title: "brag document", dir: "brags", prefix: "brag" },
   "brag-amend": { title: "brag document (amend)", dir: "brags", prefix: "brag" },
+  "report-on": { title: "direct report", dir: "report-on", prefix: "report-on" },
 };
 
 interface ToolEntry {

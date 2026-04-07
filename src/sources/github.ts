@@ -6,6 +6,7 @@ import { getConfig } from "../config/defaults.js";
 import { defineSource, getSourceMethod } from "./registry.js";
 import { formatSourceResult, type SourceResult } from "./types.js";
 import { claudeMcpQuery } from "./claude-mcp.js";
+import { getTargetUser } from "../report/target-user.js";
 
 const dateRange = {
   since: z.string().describe("Start date in YYYY-MM-DD format"),
@@ -26,6 +27,8 @@ function getClient(): Octokit {
 }
 
 async function getUsername(octokit: Octokit): Promise<string> {
+  const target = getTargetUser();
+  if (target?.github?.username) return target.github.username;
   const config = getConfig();
   if (config.github.username) return config.github.username;
   const { data: user } = await octokit.users.getAuthenticated();
@@ -222,8 +225,10 @@ const source = defineSource({
       }),
       execute: async (params) => {
         if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          const who = target ? `${target.name}'s (email: ${target.email})` : "my";
           return claudeMcpQuery(
-            `List my GitHub pull requests from ${params.since} to ${params.until} (state: ${params.state}). For each PR include: title, PR number, repository, state, date created, and URL. Format as a markdown list.`,
+            `List ${who} GitHub pull requests from ${params.since} to ${params.until} (state: ${params.state}). For each PR include: title, PR number, repository, state, date created, and URL. Format as a markdown list.`,
           );
         }
         return formatSourceResult(await getPullRequests(params));
@@ -235,8 +240,10 @@ const source = defineSource({
       parameters: z.object(dateRange),
       execute: async (params) => {
         if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          const who = target ? `${target.name} (email: ${target.email})` : "I";
           return claudeMcpQuery(
-            `List the GitHub pull requests I reviewed from ${params.since} to ${params.until}. For each include: PR title, number, repository, and date. Format as a markdown list.`,
+            `List the GitHub pull requests ${who} reviewed from ${params.since} to ${params.until}. For each include: PR title, number, repository, and date. Format as a markdown list.`,
           );
         }
         return formatSourceResult(await getReviewsGiven(params));
@@ -248,8 +255,10 @@ const source = defineSource({
       parameters: z.object(dateRange),
       execute: async (params) => {
         if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          const who = target ? `${target.name}'s (email: ${target.email})` : "my";
           return claudeMcpQuery(
-            `Summarize my GitHub commit activity from ${params.since} to ${params.until}. Include: total commit count, which repositories I committed to, and the most notable commit messages. Format as markdown.`,
+            `Summarize ${who} GitHub commit activity from ${params.since} to ${params.until}. Include: total commit count, which repositories were committed to, and the most notable commit messages. Format as markdown.`,
           );
         }
         return formatSourceResult(await getCommitActivity(params));

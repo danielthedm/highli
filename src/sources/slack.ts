@@ -5,6 +5,7 @@ import { defineSource, getSourceMethod } from "./registry.js";
 import { formatSourceResult, type SourceResult } from "./types.js";
 import { getConfig } from "../config/defaults.js";
 import { claudeMcpQuery } from "./claude-mcp.js";
+import { getTargetUser } from "../report/target-user.js";
 
 const dateRange = {
   since: z.string().describe("Start date in YYYY-MM-DD format"),
@@ -25,8 +26,10 @@ async function searchMessages(params: {
 }): Promise<SourceResult> {
   const client = getClient();
   const config = getConfig();
+  const target = getTargetUser();
 
-  let query = `from:${config.slack.userId ?? "me"} after:${params.since} before:${params.until}`;
+  const userId = target?.slack?.userId ?? config.slack.userId ?? "me";
+  let query = `from:${userId} after:${params.since} before:${params.until}`;
   if (params.query) query += ` ${params.query}`;
   if (params.channels?.length) {
     query += ` in:${params.channels.join(" in:")}`;
@@ -83,7 +86,8 @@ async function getChannelActivity(params: {
 }): Promise<SourceResult> {
   const client = getClient();
   const config = getConfig();
-  const userId = config.slack.userId;
+  const target = getTargetUser();
+  const userId = target?.slack?.userId ?? config.slack.userId;
 
   const items: SourceResult["items"] = [];
   let total = 0;
@@ -154,11 +158,13 @@ const source = defineSource({
       }),
       execute: async (params) => {
         if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          const who = target ? `${target.name}'s (email: ${target.email})` : "my";
           const channelFilter = params.channels?.length
             ? ` in channels: ${params.channels.join(", ")}`
             : "";
           return claudeMcpQuery(
-            `Search my Slack messages from ${params.since} to ${params.until}${params.query ? ` matching "${params.query}"` : ""}${channelFilter}. Show message snippets, channel names, and dates. Format as a markdown list.`,
+            `Search ${who} Slack messages from ${params.since} to ${params.until}${params.query ? ` matching "${params.query}"` : ""}${channelFilter}. Show message snippets, channel names, and dates. Format as a markdown list.`,
           );
         }
         return formatSourceResult(await searchMessages(params));
@@ -175,8 +181,10 @@ const source = defineSource({
       }),
       execute: async (params) => {
         if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          const who = target ? `did ${target.name} (email: ${target.email}) send` : "did I send";
           return claudeMcpQuery(
-            `How many messages did I send in these Slack channels from ${params.since} to ${params.until}: ${params.channels.join(", ")}? Give me the count per channel. Format as markdown.`,
+            `How many messages ${who} in these Slack channels from ${params.since} to ${params.until}: ${params.channels.join(", ")}? Give me the count per channel. Format as markdown.`,
           );
         }
         return formatSourceResult(await getChannelActivity(params));

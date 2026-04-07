@@ -4,6 +4,7 @@ import { render } from "ink";
 import { Command } from "commander";
 import { App } from "./app.js";
 import { ReportApp } from "./components/ReportApp.js";
+import { ReportOnApp } from "./components/ReportOnApp.js";
 import { SetupWizard } from "./setup/wizard.js";
 import { parseDateRange } from "./utils/date.js";
 
@@ -131,6 +132,41 @@ program
     }
 
     render(<ReportApp timeframe={timeframe} mode="brag" />);
+  });
+
+// Report on a direct report
+program
+  .command("report-on")
+  .description(
+    "Generate a report about a direct report's work — accomplishments, impact, and evidence",
+  )
+  .option("--name <name>", "Direct report's full name")
+  .option("--email <email>", "Direct report's email address")
+  .option("--from <date>", "Period start date (YYYY-MM-DD)")
+  .option("--to <date>", "Period end date (YYYY-MM-DD)")
+  .option(
+    "--timeframe <range>",
+    'Natural language timeframe (e.g., "Q1 2026", "last 6 months")',
+  )
+  .action((options) => {
+    let timeframe: { from: string; to: string };
+
+    if (options.from && options.to) {
+      timeframe = { from: options.from, to: options.to };
+    } else if (options.timeframe) {
+      timeframe = parseDateRange(options.timeframe);
+    } else {
+      // Default to last 6 months
+      timeframe = parseDateRange("last 6 months");
+    }
+
+    render(
+      <ReportOnApp
+        timeframe={timeframe}
+        name={options.name}
+        email={options.email}
+      />,
+    );
   });
 
 // Setup wizard

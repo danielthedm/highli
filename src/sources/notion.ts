@@ -4,6 +4,7 @@ import { Client } from "@notionhq/client";
 import { defineSource, getSourceMethod } from "./registry.js";
 import { formatSourceResult, type SourceResult } from "./types.js";
 import { claudeMcpQuery } from "./claude-mcp.js";
+import { getTargetUser } from "../report/target-user.js";
 
 const dateRange = {
   since: z.string().describe("Start date in YYYY-MM-DD format"),
@@ -131,8 +132,10 @@ const source = defineSource({
       }),
       execute: async (params) => {
         if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          const byWhom = target ? ` created or edited by ${target.name}` : "";
           return claudeMcpQuery(
-            `Search Notion for pages matching "${params.query}" edited between ${params.since} and ${params.until}. List each page with its title, last edited date, and URL. Format as markdown.`,
+            `Search Notion for pages${byWhom} matching "${params.query}" edited between ${params.since} and ${params.until}. List each page with its title, last edited date, and URL. Format as markdown.`,
           );
         }
         return formatSourceResult(await searchPages(params));

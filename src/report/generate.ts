@@ -1,7 +1,8 @@
 import { streamText } from "ai";
 import { getModel } from "../agent/provider.js";
 import { getEnabledTools } from "../agent/tools.js";
-import { buildReportPrompt, buildBragPrompt, buildBragAmendPrompt } from "./prompt.js";
+import { buildReportPrompt, buildBragPrompt, buildBragAmendPrompt, buildReportOnPrompt } from "./prompt.js";
+import type { TargetUser } from "./target-user.js";
 
 export interface GenerateCallbacks {
   onToolStart: (name: string) => void;
@@ -11,10 +12,11 @@ export interface GenerateCallbacks {
   onError: (error: Error) => void;
 }
 
-export type GenerateMode = "report" | "brag" | "brag-amend";
+export type GenerateMode = "report" | "brag" | "brag-amend" | "report-on";
 
 export interface GenerateOptions {
   existingBrag?: string;
+  targetUser?: TargetUser;
 }
 
 const USER_MESSAGES: Record<GenerateMode, (from: string, to: string) => string> = {
@@ -24,6 +26,8 @@ const USER_MESSAGES: Record<GenerateMode, (from: string, to: string) => string> 
     `Generate the most comprehensive possible brag document for my work from ${from} to ${to}. Pull data from GitHub, Linear, Slack, and Notion — do NOT use Claude Code tools. Gather ALL data first: every PR, every review, every commit, every Linear issue, every Notion doc. Run multiple Slack searches with different queries. Fetch the content of every relevant Notion page. Then synthesize into an exhaustive brag doc with links to everything.`,
   "brag-amend": (from, to) =>
     `Update my existing brag document with new accomplishments from ${from} to ${to}. Pull data from all available sources for this new period, then merge the new items into the existing doc. Output the complete updated document.`,
+  "report-on": (from, to) =>
+    `Generate a comprehensive report about this team member's work from ${from} to ${to}. Pull data from all available sources — GitHub, Linear, Slack, Notion. Do NOT use Claude Code tools. Gather ALL data first: every PR, every review, every commit, every Linear issue, every Notion doc. Run multiple Slack searches with different queries. Then synthesize into an exhaustive report with links to everything.`,
 };
 
 export async function generate(
@@ -33,7 +37,9 @@ export async function generate(
   options?: GenerateOptions,
 ): Promise<void> {
   let system: string;
-  if (mode === "brag-amend" && options?.existingBrag) {
+  if (mode === "report-on" && options?.targetUser) {
+    system = buildReportOnPrompt(timeframe, options.targetUser);
+  } else if (mode === "brag-amend" && options?.existingBrag) {
     system = buildBragAmendPrompt(timeframe, options.existingBrag);
   } else if (mode === "brag-amend") {
     // Fallback to fresh brag if no existing doc
