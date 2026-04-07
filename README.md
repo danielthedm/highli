@@ -68,7 +68,7 @@ All optional — highli works with whatever you connect:
 | PagerDuty | `PAGERDUTY_TOKEN` | On-call shifts, incidents responded to |
 | Datadog | `DATADOG_API_KEY` | Dashboards created, monitors configured |
 
-> **Note:** Only GitHub, Slack, Linear, and Notion are built in today. The table above shows the intended roadmap — contributions welcome. See [Adding a data source](#adding-a-data-source) to add one.
+> **Note:** All sources above are implemented. Some require additional env vars beyond the token — see `.env.example` for full details (e.g., Jira/Confluence need `_EMAIL` and `_BASE_URL`, Bitbucket needs `_USERNAME` and `_WORKSPACE`).
 
 **GitHub note:** If you don't set `GITHUB_TOKEN`, highli will automatically use your `gh` CLI session (if authenticated). This is useful when your org blocks personal access tokens.
 

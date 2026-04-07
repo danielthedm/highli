@@ -36,6 +36,47 @@ export const configSchema = z.object({
       defaultDatabaseIds: z.array(z.string()).default([]),
     })
     .default({}),
+  jira: z
+    .object({
+      method: accessMethod,
+    })
+    .default({}),
+  confluence: z
+    .object({
+      method: accessMethod,
+    })
+    .default({}),
+  gitlab: z
+    .object({
+      method: accessMethod,
+      username: z.string().optional(),
+    })
+    .default({}),
+  bitbucket: z
+    .object({
+      method: accessMethod,
+    })
+    .default({}),
+  asana: z
+    .object({
+      method: accessMethod,
+    })
+    .default({}),
+  googleDocs: z
+    .object({
+      method: accessMethod,
+    })
+    .default({}),
+  pagerduty: z
+    .object({
+      method: accessMethod,
+    })
+    .default({}),
+  datadog: z
+    .object({
+      method: accessMethod,
+    })
+    .default({}),
   claudeLogs: z
     .object({
       method: z.enum(["auto", "skip"]).default("auto"),

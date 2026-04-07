@@ -576,7 +576,7 @@ export function SetupWizard() {
               <Text color="gray">— work organization</Text>
             </Box>
             <Box gap={1} marginBottom={1}>
-              <Text color="gray">Org name (e.g. monarchmoney):</Text>
+              <Text color="gray">Org name (e.g. acme-corp):</Text>
               <TextInput
                 value={orgInput}
                 onChange={setOrgInput}

@@ -5,6 +5,10 @@ export interface TargetUser {
   linear?: { userId: string; displayName: string };
   slack?: { userId: string };
   notion?: { userId: string };
+  gitlab?: { username: string };
+  bitbucket?: { uuid: string };
+  asana?: { userId: string };
+  pagerduty?: { userId: string };
 }
 
 let _targetUser: TargetUser | null = null;
