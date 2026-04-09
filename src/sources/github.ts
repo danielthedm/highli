@@ -145,6 +145,87 @@ async function getReviewsGiven(params: {
   };
 }
 
+async function getCollaborationPRs(params: {
+  since: string;
+  until: string;
+}): Promise<SourceResult> {
+  const target = getTargetUser();
+  if (!target?.github?.username) {
+    return {
+      source: "GitHub Collaboration",
+      summary: "No peer GitHub username resolved — cannot compute collaboration intersection.",
+      items: [],
+      totalCount: 0,
+    };
+  }
+
+  const octokit = getClient();
+  const config = getConfig();
+  const me =
+    config.github.username ??
+    (await octokit.users.getAuthenticated()).data.login;
+  const peer = target.github.username;
+  const scope = buildScopeFilter();
+
+  const queries: { label: string; q: string }[] = [
+    {
+      label: `I authored / ${peer} reviewed`,
+      q: `author:${me} reviewed-by:${peer} created:${params.since}..${params.until} is:pr ${scope}`.trim(),
+    },
+    {
+      label: `${peer} authored / I reviewed`,
+      q: `author:${peer} reviewed-by:${me} created:${params.since}..${params.until} is:pr ${scope}`.trim(),
+    },
+    {
+      label: `I commented on ${peer}'s PR`,
+      q: `author:${peer} commenter:${me} created:${params.since}..${params.until} is:pr ${scope}`.trim(),
+    },
+    {
+      label: `${peer} commented on my PR`,
+      q: `author:${me} commenter:${peer} created:${params.since}..${params.until} is:pr ${scope}`.trim(),
+    },
+  ];
+
+  const seen = new Set<string>();
+  const allItems: SourceResult["items"] = [];
+  let totalCount = 0;
+
+  for (const { label, q } of queries) {
+    try {
+      const { data } = await octokit.search.issuesAndPullRequests({
+        q,
+        sort: "created",
+        order: "desc",
+        per_page: 100,
+      });
+      for (const pr of data.items) {
+        // De-dupe by URL but preserve the first label that surfaced it
+        if (seen.has(pr.html_url)) continue;
+        seen.add(pr.html_url);
+        totalCount++;
+        allItems.push({
+          title: pr.title,
+          description: `${label} — #${pr.number} in ${pr.repository_url
+            .split("/")
+            .slice(-2)
+            .join("/")}`,
+          date: pr.created_at.split("T")[0],
+          url: pr.html_url,
+        });
+      }
+    } catch {
+      // Swallow per-query errors — one bad query shouldn't wipe the whole log
+    }
+  }
+
+  return {
+    source: "GitHub Collaboration",
+    summary: `Found ${totalCount} PRs where @${me} and @${peer} collaborated (${params.since} to ${params.until})`,
+    items: allItems,
+    totalCount,
+  };
+}
+
 async function getCommitActivity(params: {
   since: string;
   until: string;
@@ -247,6 +328,23 @@ const source = defineSource({
           );
         }
         return formatSourceResult(await getReviewsGiven(params));
+      },
+    }),
+    github_get_collab_prs: tool({
+      description:
+        "Get pull requests where the logged-in user and a peer collaborated — PRs one authored that the other reviewed or commented on. Only works when a peer target user is set (e.g. during `highli peer-review`).",
+      parameters: z.object(dateRange),
+      execute: async (params) => {
+        if (getSourceMethod(source) === "claude-mcp") {
+          const target = getTargetUser();
+          if (!target?.github?.username) {
+            return "No peer GitHub user resolved — skip this tool.";
+          }
+          return claudeMcpQuery(
+            `List GitHub pull requests where I and ${target.name} (GitHub: @${target.github.username}) collaborated from ${params.since} to ${params.until}. Include: PRs I authored that they reviewed or commented on, and PRs they authored that I reviewed or commented on. For each PR include title, number, repository, date, URL, and which direction the collaboration went. Format as a markdown list.`,
+          );
+        }
+        return formatSourceResult(await getCollaborationPRs(params));
       },
     }),
     github_get_commits: tool({
