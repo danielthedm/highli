@@ -21,6 +21,7 @@ const MODE_CONFIG: Record<GenerateMode, { title: string; dir: string; prefix: st
   brag: { title: "brag document", dir: "brags", prefix: "brag" },
   "brag-amend": { title: "brag document (amend)", dir: "brags", prefix: "brag" },
   "report-on": { title: "direct report", dir: "report-on", prefix: "report-on" },
+  "peer-collab": { title: "peer collaboration log", dir: "peer-reviews", prefix: "peer-collab" },
 };
 
 interface ToolEntry {

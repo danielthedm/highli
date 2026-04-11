@@ -6,12 +6,22 @@ import { getEnabledTools } from "../agent/tools.js";
 import type { ChatMessage, ActiveTool } from "../agent/types.js";
 import { readImageAsBase64 } from "../utils/image.js";
 
-export function useConversation(timeframe?: { from: string; to: string }) {
+export interface UseConversationOptions {
+  /** Override the default review system prompt — used by peer-review chat mode. */
+  systemPrompt?: string;
+}
+
+export function useConversation(
+  timeframe?: { from: string; to: string },
+  options?: UseConversationOptions,
+) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingText, setStreamingText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeTools, setActiveTools] = useState<ActiveTool[]>([]);
   const coreMessagesRef = useRef<CoreMessage[]>([]);
+  const systemPromptRef = useRef<string | undefined>(options?.systemPrompt);
+  systemPromptRef.current = options?.systemPrompt;
 
   const sendMessage = useCallback(
     async (content: string, screenshotPath?: string) => {
@@ -52,7 +62,7 @@ export function useConversation(timeframe?: { from: string; to: string }) {
       try {
         const result = streamText({
           model: getModel(),
-          system: buildSystemPrompt(timeframe),
+          system: systemPromptRef.current ?? buildSystemPrompt(timeframe),
           messages: coreMessagesRef.current,
           tools: getEnabledTools(),
           maxSteps: 20,

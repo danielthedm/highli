@@ -11,6 +11,7 @@ highli setup                                  # connect your data sources
 highli brag --all                              # generate a brag doc to see what you've done
 highli brag --amend                            # update your last brag doc with new data
 highli report-on --timeframe "Q1 2026"        # generate a report about a direct report
+highli peer-review --timeframe "Q1 2026"      # collab log with a peer, then optional chat to draft the review
 highli review --timeframe "last 6 months"     # start your self-review with that context
 ```
 
@@ -147,6 +148,27 @@ highli brag --amend
 | `--to <date>` | Period end (YYYY-MM-DD) |
 | `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
 | `--amend` | Update the last brag doc with new data since it was generated |
+
+#### `highli peer-review`
+Generate a **neutral collaboration log** between you and a peer — every PR you co-reviewed, shared Linear issue, co-edited Notion doc, and Slack thread you both participated in. After the log, highli asks if you want help writing the actual peer review; if you say yes, it drops into a conversational chat (like `highli review`) where you paste the peer review questions and it drafts answers grounded in the collab log.
+
+```bash
+# Interactive — prompts for name and email
+highli peer-review --timeframe "Q1 2026"
+
+# With flags — skips prompts
+highli peer-review --name "Alex Smith" --email "alex@company.com" --timeframe "last 6 months"
+```
+
+| Flag | Description |
+|------|-------------|
+| `--name <name>` | Peer's full name |
+| `--email <email>` | Peer's email address |
+| `--from <date>` | Period start (YYYY-MM-DD) |
+| `--to <date>` | Period end (YYYY-MM-DD) |
+| `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
+
+The collab log is saved to `~/.highli/peer-reviews/`. It intentionally stays neutral — evidence only, no evaluation — so you can form your own opinions before drafting the review.
 
 #### `highli report-on`
 Generate a report about a direct report's work — accomplishments, impact, and evidence for performance reviews and 1:1s. Resolves the person's identity across all connected sources (GitHub, Linear, Slack, Notion) given their name and email.

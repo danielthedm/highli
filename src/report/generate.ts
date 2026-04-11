@@ -1,7 +1,13 @@
 import { streamText } from "ai";
 import { getModel } from "../agent/provider.js";
 import { getEnabledTools } from "../agent/tools.js";
-import { buildReportPrompt, buildBragPrompt, buildBragAmendPrompt, buildReportOnPrompt } from "./prompt.js";
+import {
+  buildReportPrompt,
+  buildBragPrompt,
+  buildBragAmendPrompt,
+  buildReportOnPrompt,
+  buildPeerCollabPrompt,
+} from "./prompt.js";
 import type { TargetUser } from "./target-user.js";
 
 export interface GenerateCallbacks {
@@ -12,7 +18,12 @@ export interface GenerateCallbacks {
   onError: (error: Error) => void;
 }
 
-export type GenerateMode = "report" | "brag" | "brag-amend" | "report-on";
+export type GenerateMode =
+  | "report"
+  | "brag"
+  | "brag-amend"
+  | "report-on"
+  | "peer-collab";
 
 export interface GenerateOptions {
   existingBrag?: string;
@@ -28,6 +39,8 @@ const USER_MESSAGES: Record<GenerateMode, (from: string, to: string) => string> 
     `Update my existing brag document with new accomplishments from ${from} to ${to}. Pull data from all available sources for this new period, then merge the new items into the existing doc. Output the complete updated document.`,
   "report-on": (from, to) =>
     `Generate a comprehensive report about this team member's work from ${from} to ${to}. Pull data from all available sources — GitHub, Linear, Slack, Notion. Do NOT use Claude Code tools. Gather ALL data first: every PR, every review, every commit, every Linear issue, every Notion doc. Run multiple Slack searches with different queries. Then synthesize into an exhaustive report with links to everything.`,
+  "peer-collab": (from, to) =>
+    `Generate a neutral collaboration log between me and this peer from ${from} to ${to}. Focus ONLY on intersection — work where we both meaningfully participated. Start with github_get_collab_prs for direct PR collaboration, then run targeted Slack searches for shared project names and signals ("paired", "helped", "synced"), cross-reference Linear issues/projects for overlap, and search Notion for co-authored or mutually-commented docs. Filter ruthlessly — discard anything that doesn't show both of us interacting. Do NOT use Claude Code tools. Write a factual evidence-only log with links — no evaluation or praise.`,
 };
 
 export async function generate(
@@ -37,7 +50,9 @@ export async function generate(
   options?: GenerateOptions,
 ): Promise<void> {
   let system: string;
-  if (mode === "report-on" && options?.targetUser) {
+  if (mode === "peer-collab" && options?.targetUser) {
+    system = buildPeerCollabPrompt(timeframe, options.targetUser);
+  } else if (mode === "report-on" && options?.targetUser) {
     system = buildReportOnPrompt(timeframe, options.targetUser);
   } else if (mode === "brag-amend" && options?.existingBrag) {
     system = buildBragAmendPrompt(timeframe, options.existingBrag);
