@@ -48,6 +48,13 @@ Thumbs.db
 .claude/
 .codex/
 .agents/
+.impeccable.md
+
+# Internal planning docs
+CONTEXT.md
+docs/build-prompts.md
+docs/dx-redesign-plan.md
+docs/production-todo.md
 
 # Local Docker overrides
 docker-compose.override.yml
