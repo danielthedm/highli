@@ -1,3 +1,5 @@
-# /server — placeholder
+# /server — worker/support modules
 
-The `highli-core` server (company-mode `/me/*` and `/org/*` APIs, ingestion workers) lands in build #5. Plan: see [`docs/dx-redesign-plan.md`](../docs/dx-redesign-plan.md).
+`/web` is the deployed `highli-core` Next.js app. Use `/server` only for
+company-mode worker modules, ingestion helpers, and scripts that do not belong
+inside route handlers.
