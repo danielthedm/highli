@@ -1,0 +1,34 @@
+{
+  "name": "@highli/core",
+  "version": "0.1.0",
+  "description": "Shared types, AI prompts, source plugin registry, SQLite event store.",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./db": "./src/db/index.ts",
+    "./ai": "./src/ai/index.ts",
+    "./registry": "./src/registry.ts",
+    "./config": "./src/config.ts",
+    "./session": "./src/session.ts",
+    "./claude-mcp": "./src/claude-mcp.ts",
+    "./date": "./src/date.ts",
+    "./documents": "./src/documents.ts",
+    "./types": "./src/types.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.0",
+    "@ai-sdk/openai": "^1.3.0",
+    "ai": "^4.3.0",
+    "better-sqlite3": "^11.5.0",
+    "conf": "^13.0.1",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11"
+  }
+}

@@ -1,63 +1,31 @@
 {
-  "name": "highli",
-  "version": "0.1.0",
-  "description": "AI powered CLI that writes your self-performance review using real data from GitHub, Slack, Linear, Jira, and more",
+  "name": "highli-monorepo",
+  "version": "0.2.0",
+  "description": "Bottoms-up engineering experience platform — solo CLI, web app, and self-hosted server.",
+  "private": true,
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/danielthedm/highli.git"
   },
-  "keywords": [
-    "performance-review",
-    "brag-doc",
+  "workspaces": [
     "cli",
-    "ai",
-    "github",
-    "slack",
-    "linear",
-    "jira",
-    "productivity"
+    "core",
+    "sources",
+    "web"
   ],
-  "files": [
-    "dist"
-  ],
-  "bin": {
-    "highli": "dist/index.js"
-  },
   "scripts": {
-    "dev": "tsx src/index.tsx",
-    "build": "tsup",
-    "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "ai": "^4.3.0",
-    "@ai-sdk/anthropic": "^1.2.0",
-    "@ai-sdk/openai": "^1.3.0",
-    "react": "^18.3.1",
-    "ink": "^5.1.0",
-    "ink-text-input": "^6.0.0",
-    "ink-spinner": "^5.0.0",
-    "chalk": "^5.4.1",
-    "commander": "^13.1.0",
-    "@octokit/rest": "^21.1.1",
-    "@slack/web-api": "^7.9.1",
-    "@linear/sdk": "^29.0.0",
-    "@notionhq/client": "^2.3.0",
-    "dotenv": "^16.4.7",
-    "conf": "^13.0.1",
-    "zod": "^3.24.2",
-    "clipboardy": "^4.0.0",
-    "date-fns": "^4.1.0",
-    "marked": "^15.0.7",
-    "marked-terminal": "^7.3.0"
+    "highli": "tsx cli/src/index.tsx",
+    "dev": "tsx cli/src/index.tsx",
+    "build": "npm -w highli run build",
+    "typecheck": "tsc -b"
   },
   "devDependencies": {
-    "typescript": "^5.7.3",
+    "@types/node": "^22.12.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tsx": "^4.19.2",
-    "tsup": "^8.4.0",
-    "@types/react": "^18.3.18",
-    "@types/node": "^22.12.0"
+    "typescript": "^5.7.3"
   }
 }

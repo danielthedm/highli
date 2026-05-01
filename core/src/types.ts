@@ -1,0 +1,49 @@
+export interface SourceItem {
+  title: string;
+  description: string;
+  date: string;
+  url?: string;
+  metrics?: Record<string, number>;
+}
+
+export interface SourceResult {
+  source: string;
+  summary: string;
+  items: SourceItem[];
+  totalCount: number;
+}
+
+export function formatSourceResult(result: SourceResult): string {
+  const lines = [`## ${result.source} (${result.totalCount} items)\n`];
+  lines.push(result.summary);
+  if (result.items.length > 0) {
+    lines.push("");
+    for (const item of result.items) {
+      const date = item.date ? ` (${item.date})` : "";
+      const url = item.url ? ` — ${item.url}` : "";
+      lines.push(`- **${item.title}**${date}${url}`);
+      if (item.description) {
+        lines.push(`  ${item.description}`);
+      }
+    }
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Canonical event shape written to the local expansive-doc store.
+ *
+ * Append-only — events are never updated or deleted. `id` is a stable
+ * deterministic key (e.g. `github:pr:owner/repo#123`) so re-ingesting
+ * the same upstream item is an idempotent UPSERT-on-conflict noop.
+ */
+export interface Event {
+  id: string;
+  source: string;
+  type: string;
+  ts: number;
+  title: string;
+  summary?: string;
+  url?: string;
+  payload: Record<string, unknown>;
+}
