@@ -8,3 +8,4 @@ export * from "./config-schema.js";
 export * from "./ingest.js";
 export * from "./db/index.js";
 export * from "./documents.js";
+export * from "./standup.js";

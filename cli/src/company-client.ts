@@ -49,6 +49,15 @@ export async function fetchLatestCompanyBrag(connection: CompanyConnection): Pro
   return json.documents?.[0]?.content ?? null;
 }
 
+export async function fetchCompanyExpansiveEvents(connection: CompanyConnection) {
+  const res = await fetch(`${connection.serverUrl}/api/me/expansive`, {
+    headers: headersFor(connection),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const json = (await res.json()) as { events?: unknown[] };
+  return json.events ?? [];
+}
+
 async function uploadSoloSnapshot(connection: CompanyConnection) {
   let uploaded = 0;
   const goal = getCurrentGoal();

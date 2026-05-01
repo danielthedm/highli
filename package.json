@@ -20,7 +20,7 @@
     "dev": "tsx cli/src/index.tsx",
     "build": "npm -w highli run build",
     "typecheck": "tsc -b && npm -w highli run typecheck",
-    "migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "migrate": "tsx scripts/apply-migrations.ts",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "worker": "tsx server/src/worker.ts",
     "verify:floor": "tsx scripts/verify-floor-cascade.ts",

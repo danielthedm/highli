@@ -28,6 +28,13 @@ import {
   type Insight,
   type WeeklyHighlight,
 } from "@highli/core/ai";
+import {
+  buildStandupSummary,
+  filterStandupEvents,
+  getStandupLookupRange,
+  getYesterdayRange,
+  type StandupSummary,
+} from "@highli/core/standup";
 
 const TEN_MINUTES = 10 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -341,6 +348,17 @@ export async function loadHomeData(): Promise<HomeData> {
     starredIds: base.starredIds,
     archivedIds: base.archivedIds,
   };
+}
+
+export function loadYesterdayStandupSummary(): StandupSummary {
+  const range = getYesterdayRange();
+  const lookup = getStandupLookupRange(range);
+  const events = eventsBetween({
+    since: lookup.since,
+    until: lookup.until,
+    limit: 300,
+  });
+  return buildStandupSummary(filterStandupEvents(events, range), range);
 }
 
 // ── Inbox data ─────────────────────────────────────────────────────

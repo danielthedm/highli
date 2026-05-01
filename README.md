@@ -10,6 +10,7 @@ cp .env.example .env                          # add your API keys
 highli setup                                  # connect your data sources
 highli brag --all                              # generate a brag doc to see what you've done
 highli brag --amend                            # update your last brag doc with new data
+highli standup                                 # copyable summary of what you did yesterday
 highli report-on --timeframe "Q1 2026"        # generate a report about a direct report
 highli peer-review --timeframe "Q1 2026"      # collab log with a peer, then optional chat to draft the review
 highli review --timeframe "last 6 months"     # start your self-review with that context
@@ -148,6 +149,18 @@ highli brag --amend
 | `--to <date>` | Period end (YYYY-MM-DD) |
 | `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
 | `--amend` | Update the last brag doc with new data since it was generated |
+
+#### `highli standup`
+Generate a copyable Markdown summary of what you did yesterday from your captured timeline.
+
+```bash
+highli standup
+highli standup --date 2026-04-30
+```
+
+| Flag | Description |
+|------|-------------|
+| `--date <date>` | Date to summarize (YYYY-MM-DD). Defaults to yesterday. |
 
 #### `highli peer-review`
 Generate a **neutral collaboration log** between you and a peer — every PR you co-reviewed, shared Linear issue, co-edited Notion doc, and Slack thread you both participated in. After the log, highli asks if you want help writing the actual peer review; if you say yes, it drops into a conversational chat (like `highli review`) where you paste the peer review questions and it drafts answers grounded in the collab log.

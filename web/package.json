@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint",
-    "migrate": "drizzle-kit migrate --config=../drizzle.config.ts"
+    "migrate": "tsx ../scripts/apply-migrations.ts"
   },
   "dependencies": {
     "@highli/core": "*",

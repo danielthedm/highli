@@ -16,6 +16,7 @@
     "./claude-mcp": "./src/claude-mcp.ts",
     "./date": "./src/date.ts",
     "./documents": "./src/documents.ts",
+    "./standup": "./src/standup.ts",
     "./types": "./src/types.ts"
   },
   "dependencies": {

@@ -9,8 +9,17 @@ import { SetupWizard } from "./setup/wizard.js";
 import { FirstSessionApp } from "./components/FirstSessionApp.js";
 import { parseDateRange } from "@highli/core";
 import {
+  buildStandupSummary,
+  filterStandupEvents,
+  getStandupLookupRange,
+  getStandupRangeForDate,
+  getYesterdayRange,
+} from "@highli/core/standup";
+import { eventsBetween } from "@highli/core/db";
+import {
   connectCompany,
   disconnectCompany,
+  fetchCompanyExpansiveEvents,
   fetchLatestCompanyBrag,
   getCompanyConnection,
 } from "./company-client.js";
@@ -185,6 +194,35 @@ program
         email={options.email}
       />,
     );
+  });
+
+program
+  .command("standup")
+  .description("Generate a copyable summary of what you did yesterday")
+  .option("--date <date>", "Date to summarize (YYYY-MM-DD). Defaults to yesterday.")
+  .action(async (options) => {
+    const range = options.date
+      ? getStandupRangeForDate(options.date)
+      : getYesterdayRange();
+    const company = getCompanyConnection();
+
+    if (company) {
+      const events = await fetchCompanyExpansiveEvents(company);
+      const filtered = filterStandupEvents(events as any[], range);
+      process.stdout.write(
+        `${buildStandupSummary(filtered as any, range).markdown}\n`,
+      );
+      return;
+    }
+
+    const lookup = getStandupLookupRange(range);
+    const events = eventsBetween({
+      since: lookup.since,
+      until: lookup.until,
+      limit: 300,
+    });
+    const filtered = filterStandupEvents(events, range);
+    process.stdout.write(`${buildStandupSummary(filtered, range).markdown}\n`);
   });
 
 program

@@ -10,8 +10,13 @@ import {
   WeeklyMemoryFallback,
   buildRecapHeader,
 } from "@/components/weekly-memory";
+import { StandupCopy } from "@/components/standup-copy";
 import { eventCount } from "@/lib/store";
-import { loadHomeBaseData, loadWeeklyAiData } from "@/lib/data";
+import {
+  loadHomeBaseData,
+  loadWeeklyAiData,
+  loadYesterdayStandupSummary,
+} from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +26,7 @@ export default async function HomePage() {
   const recapHeader = buildRecapHeader(data);
   const starredArray = Array.from(data.starredIds);
   const weeklyAiPromise = total > 0 ? loadWeeklyAiData(data) : null;
+  const standup = loadYesterdayStandupSummary();
 
   return (
     <>
@@ -59,6 +65,25 @@ export default async function HomePage() {
           </div>
 
           <ProductMockup total={total} />
+        </section>
+
+        <section className="home-standup anchor-target" aria-labelledby="standup-title">
+          <div className="reading-layout home-recap-layout">
+            <div className="reading-main">
+              <section className="section-block standup-section" aria-labelledby="standup-title">
+                <SectionHeader
+                  id="standup-title"
+                  kicker="Standup"
+                  title="What you did yesterday."
+                  note={`${standup.eventCount} captured ${standup.eventCount === 1 ? "event" : "events"} from ${standup.date}.`}
+                />
+                <div className="standup-card">
+                  <pre>{standup.markdown}</pre>
+                  <StandupCopy markdown={standup.markdown} />
+                </div>
+              </section>
+            </div>
+          </div>
         </section>
 
         {total > 0 && (

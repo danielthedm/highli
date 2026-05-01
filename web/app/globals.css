@@ -1798,6 +1798,44 @@ textarea:focus-visible {
   font-size: 14px;
 }
 
+.standup-section {
+  margin-top: 34px;
+}
+
+.standup-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(47, 47, 48, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 250, 243, 0.78);
+}
+
+.standup-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--color-text);
+  font-family: var(--font-system);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.standup-copy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid rgba(47, 47, 48, 0.14);
+  border-radius: 8px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 @media (max-width: 840px) {
   .anon-comparison,
   .aggregate-strip,
