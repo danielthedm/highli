@@ -16,6 +16,11 @@ const migrations = [
   {
     tag: "0000_omniscient_thaddeus_ross",
     path: join(repoRoot, "drizzle", "0000_omniscient_thaddeus_ross.sql"),
+    baselineRelation: { schema: "me", table: "engineers" },
+  },
+  {
+    tag: "0001_async_anon_ai",
+    path: join(repoRoot, "drizzle", "0001_async_anon_ai.sql"),
   },
 ];
 
@@ -45,7 +50,12 @@ try {
       continue;
     }
 
-    const alreadyApplied = await relationExists("me", "engineers");
+    const alreadyApplied = migration.baselineRelation
+      ? await relationExists(
+          migration.baselineRelation.schema,
+          migration.baselineRelation.table,
+        )
+      : false;
     if (alreadyApplied) {
       await markApplied(hash);
       console.log(`migration ${migration.tag} marked applied; schema already exists`);

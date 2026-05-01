@@ -6,6 +6,10 @@ const migration = readFileSync(
   new URL("../drizzle/0000_omniscient_thaddeus_ross.sql", import.meta.url),
   "utf8",
 );
+const asyncAnonMigration = readFileSync(
+  new URL("../drizzle/0001_async_anon_ai.sql", import.meta.url),
+  "utf8",
+);
 
 const forbidden = [
   "engineer_id",
@@ -22,11 +26,13 @@ const forbidden = [
 
 const anonymousSections = [
   extractBetween(schema, "export const anonymousSubmissions", "export const anonymousThemes"),
+  extractBetween(schema, "export const anonymousRedactionRequests", "export const anonymousThemes"),
   extractBetween(schema, "export const anonymousThemes", "export const anonymousSurveyResponses"),
   extractBetween(schema, "export const anonymousSurveyResponses", "export const jobs"),
   extractBetween(migration, 'CREATE TABLE "anon"."submissions"', 'CREATE TABLE "anon"."survey_responses"'),
   extractBetween(migration, 'CREATE TABLE "anon"."survey_responses"', 'CREATE TABLE "anon"."themes"'),
   extractBetween(migration, 'CREATE TABLE "anon"."themes"', 'CREATE TABLE "delivery"."messages"'),
+  asyncAnonMigration,
 ];
 
 for (const section of anonymousSections) {

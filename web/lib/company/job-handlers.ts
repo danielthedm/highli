@@ -2,7 +2,10 @@ import "server-only";
 import { detectFrictionPrompts } from "@/lib/company/personal-oauth";
 import { materializeHighlights } from "@/lib/company/me-data";
 import { generateMetricThemes } from "@/lib/company/org-data";
-import { generateAnonymousThemes } from "@/lib/company/anon-data";
+import {
+  generateAnonymousThemes,
+  processAnonymousRedactionRequest,
+} from "@/lib/company/anon-data";
 import { deliverManagerDigest, notifyManagerSurfaceChange } from "@/lib/company/delivery";
 import { runProviderIngestion } from "@/lib/company/provider-ingestion";
 import type { HighliJob } from "@/lib/company/job-queue";
@@ -19,8 +22,10 @@ export async function runJobHandler(job: HighliJob): Promise<Record<string, unkn
       return detectFrictionPrompts();
     case "me.highlights":
       return materializeHighlights(String(job.payload.engineerId));
+    case "anon.redact":
+      return processAnonymousRedactionRequest(job);
     case "anon.themes":
-      return generateAnonymousThemes();
+      return generateAnonymousThemes(job);
     case "org.metric-themes":
       return generateMetricThemes();
     case "delivery.manager-digest":

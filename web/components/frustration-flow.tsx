@@ -1,15 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 type Preview = {
   stored: boolean;
+  requestId?: string;
+  jobId?: string;
+  status?: string;
   trackingToken: string | null;
   classification: {
     category: string;
     redactedText: string;
     redactions: Array<{ original: string; replacement: string }>;
+  } | null;
+  freshness?: {
+    status: string;
+    generatedAt?: string | null;
+    retryable?: boolean;
   };
+  error?: string | null;
   redirect?: string;
   routes?: string[];
 };
@@ -20,6 +29,33 @@ export function FrustrationFlow({ initialDraft = "" }: { initialDraft?: string }
   const [sent, setSent] = useState<Preview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!preview?.requestId || preview.classification || preview.status === "failed") {
+      return;
+    }
+
+    let cancelled = false;
+    const poll = async () => {
+      const res = await fetch(`/api/anon/submit?requestId=${preview.requestId}`);
+      const json = await res.json();
+      if (cancelled) return;
+      if (!res.ok) {
+        setError(json.error ?? "Redaction status could not be loaded.");
+        return;
+      }
+      setPreview((current) =>
+        current?.requestId === preview.requestId ? { ...current, ...json } : current,
+      );
+    };
+
+    const timer = window.setInterval(poll, 1400);
+    void poll();
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [preview?.requestId, preview?.classification, preview?.status]);
 
   function submit(previewOnly: boolean) {
     setError(null);
@@ -36,6 +72,28 @@ export function FrustrationFlow({ initialDraft = "" }: { initialDraft?: string }
       }
       if (previewOnly) setPreview(json);
       else setSent(json);
+    });
+  }
+
+  function sendConfirmed() {
+    if (!preview?.requestId) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await fetch("/api/anon/submit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ requestId: preview.requestId, confirm: true }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Submission could not be processed.");
+        return;
+      }
+      if (json.status && !json.classification) {
+        setPreview((current) => (current ? { ...current, ...json } : json));
+        return;
+      }
+      setSent(json);
     });
   }
 
@@ -84,8 +142,21 @@ export function FrustrationFlow({ initialDraft = "" }: { initialDraft?: string }
           </div>
           <div>
             <p className="anon-kicker">stored version</p>
-            <div className="anon-draft redacted">{preview.classification.redactedText}</div>
-            <p className="anon-copy">Category: {preview.classification.category}</p>
+            {!preview.classification && (
+              <div className="anon-draft redacted">
+                Redaction is queued. This page will update when the materialized
+                preview is ready.
+              </div>
+            )}
+            {preview.classification && (
+              <>
+                <div className="anon-draft redacted">
+                  {preview.classification.redactedText}
+                </div>
+                <p className="anon-copy">Category: {preview.classification.category}</p>
+              </>
+            )}
+            {preview.error && <p className="form-error">{preview.error}</p>}
             {preview.redirect && (
               <p className="anon-copy">
                 This is HR territory and will not be stored. Use the configured process:
@@ -99,13 +170,17 @@ export function FrustrationFlow({ initialDraft = "" }: { initialDraft?: string }
                 private note, rephrase to systemic, or use a direct channel.
               </p>
             )}
-            {!preview.redirect && !preview.routes && (
+            {preview.classification && !preview.redirect && !preview.routes && (
               <div className="form-actions">
                 <button className="button" onClick={() => setPreview(null)}>
                   edit further
                 </button>
-                <button className="button button-primary" onClick={() => submit(false)}>
-                  send redacted version
+                <button
+                  className="button button-primary"
+                  disabled={pending}
+                  onClick={sendConfirmed}
+                >
+                  {pending ? "sending" : "send redacted version"}
                 </button>
               </div>
             )}

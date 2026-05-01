@@ -393,6 +393,32 @@ export const anonymousSubmissions = anonSchema.table(
   }),
 );
 
+export const anonymousRedactionRequests = anonSchema.table(
+  "redaction_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    inputText: text("input_text"),
+    originalFingerprint: text("original_fingerprint").notNull(),
+    previewOnly: boolean("preview_only").notNull().default(true),
+    status: text("status").notNull().default("pending"),
+    classification: jsonb("classification").$type<Record<string, unknown>>(),
+    storedSubmissionId: uuid("stored_submission_id"),
+    trackingTokenDigest: text("tracking_token_digest"),
+    sourceJobId: uuid("source_job_id"),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    statusIdx: index("anon_redaction_requests_status_idx").on(table.status),
+    sourceJobIdx: index("anon_redaction_requests_source_job_idx").on(table.sourceJobId),
+    fingerprintIdx: index("anon_redaction_requests_fingerprint_idx").on(
+      table.originalFingerprint,
+    ),
+  }),
+);
+
 export const anonymousThemes = anonSchema.table(
   "themes",
   {
@@ -504,6 +530,7 @@ export const deliveryMessages = deliverySchema.table(
 
 export const anonymousTables = {
   anonymousSubmissions,
+  anonymousRedactionRequests,
   anonymousThemes,
   anonymousSurveyResponses,
 };
