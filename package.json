@@ -19,10 +19,21 @@
     "highli": "tsx cli/src/index.tsx",
     "dev": "tsx cli/src/index.tsx",
     "build": "npm -w highli run build",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b && npm -w highli run typecheck",
+    "migrate": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "worker": "tsx server/src/worker.ts",
+    "verify:floor": "tsx scripts/verify-floor-cascade.ts",
+    "verify:anon-schema": "tsx scripts/verify-anon-schema.ts"
   },
   "devDependencies": {
     "@types/node": "^22.12.0",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.20.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsx": "^4.19.2",

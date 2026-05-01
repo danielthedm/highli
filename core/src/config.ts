@@ -21,6 +21,7 @@ const store = new Conf<HighliConfig>({
     pagerduty: { type: "object" as const, default: {} },
     datadog: { type: "object" as const, default: {} },
     claudeLogs: { type: "object" as const, default: {} },
+    company: { type: "object" as const, default: {} },
   },
   defaults: {
     ai: {
@@ -40,6 +41,7 @@ const store = new Conf<HighliConfig>({
     pagerduty: { method: "auto" },
     datadog: { method: "auto" },
     claudeLogs: { method: "auto" },
+    company: {},
   },
 });
 
@@ -63,6 +65,7 @@ export function getConfig(): HighliConfig {
     pagerduty: raw.pagerduty,
     datadog: raw.datadog,
     claudeLogs: raw.claudeLogs,
+    company: raw.company,
   });
 }
 
@@ -72,4 +75,3 @@ export function setConfig<K extends keyof HighliConfig>(
 ): void {
   store.set(key, value);
 }
-

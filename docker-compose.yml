@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: highli
+      POSTGRES_PASSWORD: highli
+      POSTGRES_DB: highli
+    ports:
+      - "5432:5432"
+    volumes:
+      - highli-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U highli -d highli"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  highli-core:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    environment:
+      HIGHLI_MODE: company
+      HIGHLI_DEV_AUTH: "true"
+      HIGHLI_DATABASE_URL: postgres://highli:highli@postgres:5432/highli
+      NEXTAUTH_URL: http://localhost:3000
+      AUTH_SECRET: dev-secret-change-me
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npm run migrate && npm -w @highli/web run start"
+
+volumes:
+  highli-postgres:

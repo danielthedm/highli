@@ -8,6 +8,12 @@ import { PeerReviewApp } from "./components/PeerReviewApp.js";
 import { SetupWizard } from "./setup/wizard.js";
 import { FirstSessionApp } from "./components/FirstSessionApp.js";
 import { parseDateRange } from "@highli/core";
+import {
+  connectCompany,
+  disconnectCompany,
+  fetchLatestCompanyBrag,
+  getCompanyConnection,
+} from "./company-client.js";
 
 const program = new Command();
 
@@ -81,6 +87,24 @@ program
     "Update the living brag doc with new data since it was generated",
   )
   .action(async (options) => {
+    const company = getCompanyConnection();
+    if (
+      company &&
+      !options.amend &&
+      !options.from &&
+      !options.to &&
+      !options.timeframe &&
+      !options.all
+    ) {
+      const content = await fetchLatestCompanyBrag(company);
+      if (content) {
+        process.stdout.write(`${content}\n`);
+        return;
+      }
+      console.error("No company-mode living brag doc found yet.");
+      process.exit(1);
+    }
+
     if (options.amend) {
       const { readManifest, readLastBrag } = await import(
         "./report/brag-state.js"
@@ -170,6 +194,39 @@ program
   )
   .action(() => {
     render(<SetupWizard />);
+  });
+
+program
+  .command("connect <serverUrl>")
+  .description("Connect the CLI to a highli-core company server and upload personal data")
+  .option("--dev-user <role>", "Use gated dev-auth role header for local servers")
+  .action(async (serverUrl, options) => {
+    try {
+      const result = await connectCompany(serverUrl, options.devUser);
+      console.log(
+        `Connected to ${result.serverUrl}. Uploaded ${result.uploaded} personal documents.`,
+      );
+    } catch (err: any) {
+      console.error(err?.message ?? String(err));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("disconnect")
+  .description("Snapshot company documents locally and return the CLI to solo mode")
+  .action(async () => {
+    try {
+      const result = await disconnectCompany();
+      if (!result.disconnected) {
+        console.log("No company connection was configured.");
+        return;
+      }
+      console.log(`Disconnected. Downloaded ${result.downloaded} documents.`);
+    } catch (err: any) {
+      console.error(err?.message ?? String(err));
+      process.exit(1);
+    }
   });
 
 program

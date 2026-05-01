@@ -82,6 +82,14 @@ export const configSchema = z.object({
       method: z.enum(["auto", "skip"]).default("auto"),
     })
     .default({}),
+  company: z
+    .object({
+      serverUrl: z.string().url().optional(),
+      token: z.string().optional(),
+      devUser: z.string().optional(),
+      connectedAt: z.string().optional(),
+    })
+    .default({}),
 });
 
 export type HighliConfig = z.infer<typeof configSchema>;
