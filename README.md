@@ -1,277 +1,286 @@
 # highli
 
-AI powered CLI tool that helps you write self-performance reviews by pulling real data from your work tools and iterating with you in a chat interface.
+highli is an engineer-first work memory tool. It pulls evidence from the tools you already use, keeps the raw timeline intact, and helps turn that trail into standups, brag docs, review drafts, and career narrative.
 
-## TL;DR
+The default experience is solo and local: no login, no server, no company account. Company mode is available for self-hosted highli-core deployments when an org wants shared ingestion, private `/me/*` surfaces, anonymous frustration channels, and aggregate manager views with privacy floors.
 
-```bash
-npm install -g highli                          # install
-cp .env.example .env                          # add your API keys
-highli setup                                  # connect your data sources
-highli brag --all                              # generate a brag doc to see what you've done
-highli brag --amend                            # update your last brag doc with new data
-highli standup                                 # copyable summary of what you did yesterday
-highli report-on --timeframe "Q1 2026"        # generate a report about a direct report
-highli peer-review --timeframe "Q1 2026"      # collab log with a peer, then optional chat to draft the review
-highli review --timeframe "last 6 months"     # start your self-review with that context
-```
-
-## How it works
-
-1. Launch highli with a timeframe
-2. Paste your review questions (or screenshot the review form)
-3. highli connects to your data sources (GitHub, Slack, Linear, Notion) and pulls your contributions
-4. It drafts answers using real evidence, asks for context it can't find, and iterates with you
-5. Export your final review to a file or clipboard
-
-## Quick start
+## Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Copy .env and add your API keys
 cp .env.example .env
-
-# Run the setup wizard to configure data sources
-npm run dev -- setup
-
-# Start a review session
-npm run dev -- review --timeframe "last 6 months"
+npm run highli -- setup
+npm run highli -- web
 ```
 
-## Configuration
+Then open `http://localhost:3000`.
 
-### AI Provider
-
-Set in `.env`:
-
-```
-AI_PROVIDER=anthropic          # or "openai"
-AI_MODEL=claude-sonnet-4-20250514  # or "gpt-4o"
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-### Data Sources
-
-All optional — highli works with whatever you connect:
-
-| Source | Env Var | What it pulls |
-|--------|---------|---------------|
-| GitHub | `GITHUB_TOKEN` | PRs authored, code reviews given, commit activity |
-| Slack | `SLACK_TOKEN` | Messages, channel activity, thread participation |
-| Linear | `LINEAR_API_KEY` | Completed issues, project contributions |
-| Notion | `NOTION_TOKEN` | Pages created/edited, document content |
-| Jira | `JIRA_TOKEN` | Issues completed, sprint contributions, epics owned |
-| Confluence | `CONFLUENCE_TOKEN` | Pages authored, documentation contributions |
-| GitLab | `GITLAB_TOKEN` | MRs merged, code reviews, pipeline activity |
-| Bitbucket | `BITBUCKET_TOKEN` | PRs, commits, repository contributions |
-| Asana | `ASANA_TOKEN` | Tasks completed, projects contributed to |
-| Google Docs | `GOOGLE_TOKEN` | Docs created/edited, comments, collaboration |
-| PagerDuty | `PAGERDUTY_TOKEN` | On-call shifts, incidents responded to |
-| Datadog | `DATADOG_API_KEY` | Dashboards created, monitors configured |
-
-> **Note:** All sources above are implemented. Some require additional env vars beyond the token — see `.env.example` for full details (e.g., Jira/Confluence need `_EMAIL` and `_BASE_URL`, Bitbucket needs `_USERNAME` and `_WORKSPACE`).
-
-**GitHub note:** If you don't set `GITHUB_TOKEN`, highli will automatically use your `gh` CLI session (if authenticated). This is useful when your org blocks personal access tokens.
-
-### Persistent config
-
-Settings like your GitHub username, default repos, and Slack user ID are stored in `~/.highli/config.json`.
-
-## Usage
-
-### Commands
-
-#### `highli setup`
-Interactive wizard to configure data sources and access methods. Run this first.
+For CLI-only use:
 
 ```bash
-highli setup
+npm run highli -- standup
+npm run highli -- brag --all
+npm run highli -- review --timeframe "last 6 months"
 ```
 
-#### `highli review`
-Start an interactive performance review session. Paste your review questions or send a screenshot, and highli gathers data, drafts answers, and iterates with you.
+## Modes
+
+### Solo Mode
+
+Solo mode is the default. It stores events and generated documents locally under `~/.highli`, with a SQLite event store.
+
+Use it for:
+
+- daily or weekly standup summaries
+- living brag docs
+- self-review drafting
+- peer-review collaboration logs
+- local web views over your own timeline
+
+### Company Mode
+
+Company mode runs the `/web` app as highli-core with Postgres and Drizzle. It keeps personal engineer surfaces under `/me/*`, stores anonymous submissions in identity-free `anon.*` tables, and exposes manager/org aggregate surfaces only through privacy-floor policy.
+
+Company mode is self-hosted and adapter-oriented:
+
+- Postgres is the primary database.
+- Jobs use the first-party Postgres queue in `jobs.*`.
+- GitHub and Linear ingestion are server-side providers.
+- Email, Slack, calendar, and survey delivery currently have dev adapters.
+- Anonymous redaction and theme work runs through async materialization jobs with retry/fallback behavior.
+
+## CLI Commands
+
+### `highli setup`
+
+Configure local data sources and access methods.
 
 ```bash
-highli review --timeframe "last 6 months"
-highli review --from 2025-10-01 --to 2026-03-31
-highli review --timeframe "Q1 2026" --screenshot ~/review-form.png
+npm run highli -- setup
 ```
+
+### `highli web`
+
+Start the local web app.
+
+```bash
+npm run highli -- web
+npm run highli -- web --no-open --port 3001
+```
+
+### `highli standup`
+
+Generate a copyable Markdown summary of what you did yesterday.
+
+```bash
+npm run highli -- standup
+npm run highli -- standup --date 2026-04-30
+```
+
+### `highli brag`
+
+Generate or update a living brag doc from captured work evidence.
+
+```bash
+npm run highli -- brag --all
+npm run highli -- brag --timeframe "Q1 2026"
+npm run highli -- brag --amend
+```
+
+Flags:
 
 | Flag | Description |
-|------|-------------|
-| `--from <date>` | Review period start (YYYY-MM-DD) |
-| `--to <date>` | Review period end (YYYY-MM-DD) |
-| `--timeframe <range>` | Natural language: `"Q1 2026"`, `"last 6 months"`, `"H2 2025"` |
-| `--screenshot <path>` | Start with a screenshot of your review form |
-| `--verbose` | Debug logging |
+| --- | --- |
+| `--from <date>` | Period start, `YYYY-MM-DD` |
+| `--to <date>` | Period end, `YYYY-MM-DD` |
+| `--timeframe <range>` | Natural language timeframe, such as `"Q1 2026"` |
+| `--all` | Include all captured history |
+| `--amend` | Add new evidence to the last generated brag doc |
 
-**Chat commands** (while in a review session):
+### `highli review`
+
+Start an interactive self-review drafting session. Paste review questions or provide a screenshot, and highli drafts from real evidence.
+
+```bash
+npm run highli -- review --timeframe "last 6 months"
+npm run highli -- review --from 2025-10-01 --to 2026-03-31
+npm run highli -- review --timeframe "Q1 2026" --screenshot ~/review-form.png
+```
+
+Chat commands inside a review session:
 
 | Command | Description |
-|---------|-------------|
-| `/screenshot <path>` | Send a screenshot of your review form |
-| `/export` | Save the draft to `~/.highli/reviews/` and copy to clipboard |
+| --- | --- |
+| `/screenshot <path>` | Attach a screenshot of the review form |
+| `/export` | Save the draft to `~/.highli/reviews/` and copy it to the clipboard |
 | `/quit` | Exit |
 
-#### `highli report`
-Generate an insights report — work patterns, productivity trends, and Claude Code usage analysis.
+### `highli report`
+
+Generate an insights report over a timeframe.
 
 ```bash
-highli report --timeframe "Q1 2026"
-highli report --from 2025-10-01 --to 2026-03-31
+npm run highli -- report --timeframe "Q1 2026"
+npm run highli -- report --from 2025-10-01 --to 2026-03-31
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--from <date>` | Report period start (YYYY-MM-DD) |
-| `--to <date>` | Report period end (YYYY-MM-DD) |
-| `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
+### `highli peer-review`
 
-#### `highli brag`
-Generate a brag document — a comprehensive record of accomplishments, impact, and evidence for performance reviews and promotion cases.
+Generate a neutral collaboration log with a peer, then optionally draft peer-review feedback from that evidence.
 
 ```bash
-highli brag --timeframe "last 6 months"
-highli brag --from 2025-10-01 --to 2026-03-31
+npm run highli -- peer-review --timeframe "Q1 2026"
+npm run highli -- peer-review --name "Alex Smith" --email "alex@company.com" --timeframe "last 6 months"
 ```
 
-Use `--amend` to incrementally update your last brag doc with new data since it was generated, rather than starting from scratch:
+### `highli connect`
+
+Connect the CLI to a highli-core company server and upload local personal documents into your company `/me/*` partition.
 
 ```bash
-highli brag --amend
+npm run highli -- connect http://localhost:3000 --dev-user engineer
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--from <date>` | Period start (YYYY-MM-DD) |
-| `--to <date>` | Period end (YYYY-MM-DD) |
-| `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
-| `--amend` | Update the last brag doc with new data since it was generated |
+### `highli disconnect`
 
-#### `highli standup`
-Generate a copyable Markdown summary of what you did yesterday from your captured timeline.
+Download company documents locally and return the CLI to solo mode.
 
 ```bash
-highli standup
-highli standup --date 2026-04-30
+npm run highli -- disconnect
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--date <date>` | Date to summarize (YYYY-MM-DD). Defaults to yesterday. |
+## Data Sources
 
-#### `highli peer-review`
-Generate a **neutral collaboration log** between you and a peer — every PR you co-reviewed, shared Linear issue, co-edited Notion doc, and Slack thread you both participated in. After the log, highli asks if you want help writing the actual peer review; if you say yes, it drops into a conversational chat (like `highli review`) where you paste the peer review questions and it drafts answers grounded in the collab log.
+All sources are optional. highli works with whatever you connect.
+
+| Source | Env Var | What it pulls |
+| --- | --- | --- |
+| GitHub | `GITHUB_TOKEN` | PRs authored, code reviews, commits |
+| Slack | `SLACK_TOKEN` | Messages, channel activity, threads |
+| Linear | `LINEAR_API_KEY` | Completed issues and project work |
+| Notion | `NOTION_TOKEN` | Pages and documentation |
+| Jira | `JIRA_TOKEN` | Issues, sprints, epics |
+| Confluence | `CONFLUENCE_TOKEN` | Pages and documentation |
+| GitLab | `GITLAB_TOKEN` | Merge requests, reviews, pipelines |
+| Bitbucket | `BITBUCKET_TOKEN` | Pull requests and commits |
+| Asana | `ASANA_TOKEN` | Tasks and projects |
+| Google Docs | `GOOGLE_TOKEN` | Docs and comments |
+| PagerDuty | `PAGERDUTY_TOKEN` | On-call shifts and incidents |
+| Datadog | `DATADOG_API_KEY` | Dashboards and monitors |
+
+Some sources require additional env vars. See `.env.example`.
+
+If `GITHUB_TOKEN` is not set, highli can use your authenticated `gh` CLI session when available.
+
+## Web App
+
+The web app lives in `web/` and reads the same local store the CLI populates in solo mode.
 
 ```bash
-# Interactive — prompts for name and email
-highli peer-review --timeframe "Q1 2026"
-
-# With flags — skips prompts
-highli peer-review --name "Alex Smith" --email "alex@company.com" --timeframe "last 6 months"
+npm run highli -- web
+npm -w @highli/web run dev
+npm -w @highli/web run build
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--name <name>` | Peer's full name |
-| `--email <email>` | Peer's email address |
-| `--from <date>` | Period start (YYYY-MM-DD) |
-| `--to <date>` | Period end (YYYY-MM-DD) |
-| `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
+Current web surfaces include:
 
-The collab log is saved to `~/.highli/peer-reviews/`. It intentionally stays neutral — evidence only, no evaluation — so you can form your own opinions before drafting the review.
+- home recap and standup summary
+- timeline
+- inbox/grouping
+- living brag doc
+- review writer
+- documents
+- transparency page
+- company-mode manager/admin/anonymous surfaces
 
-#### `highli report-on`
-Generate a report about a direct report's work — accomplishments, impact, and evidence for performance reviews and 1:1s. Resolves the person's identity across all connected sources (GitHub, Linear, Slack, Notion) given their name and email.
+## Company Mode With Docker
+
+Start Postgres and highli-core:
 
 ```bash
-# Interactive — prompts for name and email
-highli report-on --timeframe "Q1 2026"
-
-# With flags — skips prompts
-highli report-on --name "Jane Doe" --email "jane@company.com" --timeframe "last 3 months"
+docker compose up --build
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--name <name>` | Direct report's full name |
-| `--email <email>` | Direct report's email address |
-| `--from <date>` | Period start (YYYY-MM-DD) |
-| `--to <date>` | Period end (YYYY-MM-DD) |
-| `--timeframe <range>` | Natural language timeframe (defaults to last 6 months) |
+Useful env vars:
 
-## Adding a data source
-
-highli uses a plugin registry — adding a new source (e.g., Jira) requires **one file** and **one import line**.
-
-### 1. Create `src/sources/jira.ts`
-
-```typescript
-import { tool } from "ai";
-import { z } from "zod";
-import { defineSource } from "./registry.js";
-import { formatSourceResult } from "./types.js";
-
-// Your API functions...
-
-export default defineSource({
-  name: "Jira",
-  envKey: "JIRA_TOKEN",
-  description: "Issues, sprints, and project boards",
-  tools: {
-    jira_get_issues: tool({
-      description: "Get Jira issues assigned to the user in a date range",
-      parameters: z.object({
-        since: z.string().describe("Start date YYYY-MM-DD"),
-        until: z.string().describe("End date YYYY-MM-DD"),
-      }),
-      execute: async (params) => {
-        // Call Jira API, return formatted result
-      },
-    }),
-  },
-});
+```bash
+HIGHLI_MODE=company
+HIGHLI_DATABASE_URL=postgres://highli:highli@postgres:5432/highli
+HIGHLI_DEV_AUTH=true
+AUTH_SECRET=dev-secret-change-me
 ```
 
-### 2. Register it in `src/sources/registry.ts`
+Apply migrations directly:
 
-```typescript
-import jira from "./jira.js";
-const allSources: Source[] = [github, linear, slack, notion, jira];
+```bash
+HIGHLI_DATABASE_URL=postgres://highli:highli@localhost:5432/highli npm run migrate
 ```
 
-### 3. Add the env var to `.env.example`
+Run one queued job:
 
-```
-JIRA_TOKEN=
+```bash
+curl -X POST http://localhost:3000/api/jobs/run-once
 ```
 
-That's it. The tools, system prompt, and UI all auto-discover from the registry.
+Run the worker loop:
+
+```bash
+HIGHLI_MODE=company npm run worker
+```
 
 ## Development
 
 ```bash
-npm run dev          # Run with tsx (fast)
-npm run build        # Build with tsup
-npm run typecheck    # Type check
-npm run start        # Run built version
+npm install
+npm run typecheck
+npm run build
+npm -w @highli/web run build
+npm run verify:floor
+npm run verify:anon-schema
 ```
 
-### Global install
+Repo layout:
 
-```bash
-npm run build && npm link
-highli setup
-highli review --timeframe "last 6 months"
+```text
+cli/       Ink CLI and command entrypoint
+core/      shared local store, AI helpers, documents, standup summaries
+sources/   source adapters and tool registry
+web/       Next.js app, company-mode APIs, Drizzle schema
+server/    worker entrypoint
+scripts/   migrations and verification scripts
+drizzle/   generated SQL migrations
 ```
+
+## Adding A Source
+
+Add a source adapter in `sources/src/`, then export it from `sources/src/index.ts`.
+
+The source registry is shared by the CLI and web app. New sources should expose:
+
+- an env key
+- a human-readable description
+- AI tools for interactive review/report flows
+- optional bulk ingestion for timeline population
+
+Update `.env.example` with any new env vars.
+
+## Privacy Shape
+
+highli is designed around engineer trust:
+
+- solo mode is local and unauthenticated
+- company mode keeps personal data under `/me/*`
+- anonymous submissions use identity-free `anon.*` tables
+- manager views are aggregate-only and gated by floor policy
+- AI-heavy work is materialized asynchronously with freshness and fallback status
 
 ## Stack
 
-- [Ink 5](https://github.com/vadimdemedes/ink) — React for terminal UIs
-- [Vercel AI SDK](https://sdk.vercel.ai) — Provider-agnostic AI (Anthropic, OpenAI, etc.)
-- [Octokit](https://github.com/octokit/rest.js) — GitHub API
-- [@slack/web-api](https://slack.dev/node-slack-sdk/web-api) — Slack API
-- [@linear/sdk](https://developers.linear.app/docs/sdk/getting-started) — Linear API
-- [@notionhq/client](https://github.com/makenotion/notion-sdk-js) — Notion API
+- TypeScript
+- Ink
+- Next.js
+- Postgres
+- Drizzle
+- Vercel AI SDK
+- Octokit
+- Linear SDK
