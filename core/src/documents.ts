@@ -217,24 +217,29 @@ export async function writeBragManifest(manifest: BragManifest): Promise<void> {
 
 export async function readLastBragDocument(): Promise<{
   manifest: BragManifest;
+  document: SavedDocument;
   content: string;
 } | null> {
   const living = await readDocument("brag", "brag.md");
   if (living) {
+    const { content, ...document } = living;
     return {
       manifest: {
         lastRunDate:
           living.timeframe?.to ?? new Date(living.updatedAt).toISOString().split("T")[0],
         lastFilePath: living.path,
       },
-      content: living.content,
+      document,
+      content,
     };
   }
 
   const manifest = await readBragManifest();
   if (manifest && existsSync(manifest.lastFilePath)) {
+    const document = await toSavedDocument("brag", basename(manifest.lastFilePath));
     return {
       manifest,
+      document,
       content: await readFile(manifest.lastFilePath, "utf-8"),
     };
   }
@@ -248,6 +253,7 @@ export async function readLastBragDocument(): Promise<{
         latest.timeframe?.to ?? new Date(latest.createdAt).toISOString().split("T")[0],
       lastFilePath: latest.path,
     },
+    document: latest,
     content: await readFile(latest.path, "utf-8"),
   };
 }

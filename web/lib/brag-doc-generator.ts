@@ -34,6 +34,11 @@ function eventDate(event: Event): string {
   return new Date(event.ts).toISOString().split("T")[0];
 }
 
+function eventDateRange(events: Event[]): { from: string; to: string } {
+  const dates = events.map(eventDate).sort();
+  return { from: dates[0], to: dates[dates.length - 1] };
+}
+
 function compactEvent(event: Event, starredIds: Set<string>) {
   return {
     id: event.id,
@@ -171,24 +176,21 @@ export async function generateLivingBragDoc(): Promise<GenerateBragDocResult> {
       throw new Error("No raw timeline events found. Pull data before generating a brag doc.");
     }
 
-    const document = await saveDocument({
-      kind: "brag",
-      title: "Living brag doc",
-      content: existing.content,
-      timeframe: { from, to },
-      source: "web",
-    });
-
     return {
       ok: true,
       changed: false,
       mode,
       eventsUsed: 0,
-      document,
+      document: existing.document,
       message: `No new raw timeline events found since ${from}. The existing brag doc was left intact.`,
     };
   }
 
+  const evidenceRange = eventDateRange(rawEvents);
+  const documentRange = {
+    from: existing?.document.timeframe?.from ?? evidenceRange.from,
+    to: evidenceRange.to,
+  };
   const eventIds = new Set(rawEvents.map((event) => event.id));
   const events = rawEvents
     .sort((a, b) => b.ts - a.ts)
@@ -200,14 +202,14 @@ export async function generateLivingBragDoc(): Promise<GenerateBragDocResult> {
   const prompt = existing
     ? buildAmendPrompt({
         from,
-        to,
+        to: evidenceRange.to,
         existingBrag: existing.content,
         events,
         manualGroups,
       })
     : buildGeneratePrompt({
-        from,
-        to,
+        from: evidenceRange.from,
+        to: evidenceRange.to,
         events,
         manualGroups,
       });
@@ -230,7 +232,7 @@ export async function generateLivingBragDoc(): Promise<GenerateBragDocResult> {
     kind: "brag",
     title: "Living brag doc",
     content,
-    timeframe: { from, to },
+    timeframe: documentRange,
     source: "web",
   });
 
