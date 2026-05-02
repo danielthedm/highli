@@ -1295,14 +1295,108 @@ textarea:focus-visible {
   margin-top: 10px;
 }
 
-.document-reader pre {
+.markdown-document {
   margin: 0;
   color: var(--color-text);
   font-family: var(--font-system);
-  font-size: 15px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-break: break-word;
+  font-size: 16px;
+  line-height: 1.72;
+}
+
+.markdown-document > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-document > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-document h2,
+.markdown-document h3,
+.markdown-document h4,
+.markdown-document h5,
+.markdown-document h6 {
+  max-width: 760px;
+  color: var(--color-text);
+  font-family: var(--font-narrative);
+  font-weight: 750;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
+
+.markdown-document h2 {
+  margin: 0 0 32px;
+  font-size: clamp(30px, 5vw, 54px);
+}
+
+.markdown-document h3 {
+  margin: 42px 0 12px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(47, 47, 48, 0.1);
+  font-size: clamp(24px, 3.5vw, 36px);
+}
+
+.markdown-document h4 {
+  margin: 28px 0 10px;
+  font-size: clamp(20px, 2.6vw, 26px);
+}
+
+.markdown-document h5,
+.markdown-document h6 {
+  margin: 22px 0 8px;
+  font-size: 17px;
+}
+
+.markdown-document p {
+  max-width: 760px;
+  margin: 0 0 18px;
+  color: var(--color-text);
+}
+
+.markdown-document ul,
+.markdown-document ol {
+  display: grid;
+  max-width: 780px;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding-left: 24px;
+}
+
+.markdown-document li {
+  padding-left: 4px;
+  color: var(--color-text);
+}
+
+.markdown-document li::marker {
+  color: var(--color-accent);
+  font-weight: 800;
+}
+
+.markdown-document strong {
+  font-weight: 850;
+}
+
+.markdown-document a {
+  color: var(--color-accent);
+  font-weight: 750;
+  text-decoration-color: rgba(23, 106, 229, 0.32);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.markdown-document a:hover {
+  text-decoration-color: currentColor;
+}
+
+.markdown-document code {
+  display: inline-block;
+  padding: 0 7px;
+  border-radius: 9px;
+  background: rgba(47, 47, 48, 0.06);
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  line-height: 1.55;
 }
 
 .cmdk-overlay {

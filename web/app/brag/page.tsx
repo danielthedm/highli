@@ -2,6 +2,7 @@ import { TopStrip } from "@/components/top-strip";
 import { CmdKPalette } from "@/components/cmdk-palette";
 import { AppShell, PageHeader } from "@/components/page-header";
 import { BragDocActions } from "@/components/brag-doc-actions";
+import { MarkdownDocument } from "@/components/markdown-document";
 import { eventCount, getCurrentGoal } from "@/lib/store";
 import { readLastBragDocument } from "@highli/core/documents";
 
@@ -44,7 +45,7 @@ export default async function BragPage() {
 
         {brag ? (
           <article className="document-reader living-document-reader">
-            <pre>{brag.content}</pre>
+            <MarkdownDocument markdown={brag.content} />
           </article>
         ) : (
           <section className="empty-state">
