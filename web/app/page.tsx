@@ -11,6 +11,7 @@ import {
   buildRecapHeader,
 } from "@/components/weekly-memory";
 import { StandupCopy } from "@/components/standup-copy";
+import { HighliDoodle } from "@/components/highli-doodle";
 import { eventCount } from "@/lib/store";
 import {
   loadHomeBaseData,
@@ -39,6 +40,7 @@ export default async function HomePage() {
       <main className="home-shell">
         <section className="home-hero" aria-labelledby="home-title">
           <div>
+            <HighliDoodle className="hero-doodle" title="highli doodle logo" />
             <p className="eyebrow-pill">AI-curated work memory</p>
             <h1 id="home-title" className="hero-title">
               Keep the work that matters in view.

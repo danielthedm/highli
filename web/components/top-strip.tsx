@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { primaryNavItems } from "@/lib/navigation";
+import { HighliDoodle } from "@/components/highli-doodle";
 
 interface TopStripProps {
   goal: string | null;
@@ -72,7 +73,9 @@ export function TopStrip({ goal, level, skills, growthAreas }: TopStripProps) {
           href="/"
           className="wordmark"
         >
-          <span className="wordmark-mark">h</span>
+          <span className="wordmark-mark">
+            <HighliDoodle decorative />
+          </span>
           <span>highli</span>
         </Link>
 

@@ -143,13 +143,17 @@ textarea:focus-visible {
 .wordmark-mark {
   display: inline-grid;
   place-items: center;
-  width: 27px;
-  height: 27px;
-  border-radius: 9px;
-  background: var(--color-text);
-  color: var(--color-bg);
-  font-size: 18px;
+  width: 38px;
+  height: 38px;
+  color: var(--color-text);
   line-height: 1;
+}
+
+.wordmark-mark svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 3px 0 rgba(47, 47, 48, 0.08));
 }
 
 .top-nav {
@@ -547,6 +551,16 @@ textarea:focus-visible {
   gap: clamp(30px, 6vw, 78px);
   align-items: center;
   padding: clamp(20px, 4vw, 44px) 0 clamp(42px, 7vw, 86px);
+}
+
+.hero-doodle {
+  display: block;
+  width: clamp(76px, 11vw, 118px);
+  height: auto;
+  margin: 0 0 18px;
+  color: var(--color-text);
+  transform: rotate(-4deg);
+  filter: drop-shadow(0 9px 0 rgba(47, 47, 48, 0.07));
 }
 
 .hero-title {
